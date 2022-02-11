@@ -4,7 +4,7 @@ library("foreach")
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-lchl_df <- read.csv("/master_with_contime_df.csv", sep=",", header=TRUE)
+lchl_df <- read.csv("master_with_contime_df.csv", sep=",", header=TRUE)
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -46,18 +46,18 @@ lchl2_df <- cbind(lchl_df,lchl_cat2)
 colnames(lchl2_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df
-csvfile <- "/chl_unbalanced_df.csv"
+csvfile <- "chl_unbalanced_df.csv"
 write.table(lchl2_df,csvfile,sep=",") #save as csv
 
 
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get MHW df
-mhw_df <- read.csv("/mhw_unbalanced_df.csv", sep=",", header=TRUE) #get df with mhw cats
+mhw_df <- read.csv("mhw_unbalanced_df.csv", sep=",", header=TRUE) #get df with mhw cats
 #head(mhw_df)
 #tail(mhw_df)
 
 # Get LChl df
-lchl_df <- read.csv("/chl_unbalanced_df.csv", sep=",", header=TRUE) #get df with chl cats
+lchl_df <- read.csv("chl_unbalanced_df.csv", sep=",", header=TRUE) #get df with chl cats
 #head(lchl_df)
 #tail(lchl_df)
 
@@ -91,13 +91,13 @@ head(comp_df)
 nrow(comp_df)
 
 # Save compound df
-csvfile <- "/comp_unbalanced_df.csv"
+csvfile <- "comp_unbalanced_df.csv"
 write.table(comp_df,csvfile,sep=",") #create master csv with day/month/year
 
 
 ##################################### Define Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
-comp_df <- read.csv("/comp_unbalanced_df.csv", sep=",", header=TRUE)
+comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE)
 head(comp_df)
 #tail(comp_df)
 
@@ -147,12 +147,12 @@ colnames(comp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil"
                        "qnet","slp","sat","wndSp","sst","sstRoC","lchlCat","mhwCat","compCat")
     
 # Save df with compound event categories
-csvfile <- "/comp_unbalanced_df.csv"
+csvfile <- "comp_unbalanced_df.csv"
 write.table(comp_df,csvfile,sep=",")
     
 ##################################### Balance Compound Df #####################################
 # Get df with mhw and lchl compound events
-comp_df <- read.csv("/comp_unbalanced_df.csv", sep=",", header=TRUE) #get df with categorized mhw and lchl
+comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE) #get df with categorized mhw and lchl
 head(comp_df)
     
 # Find the percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (4)
@@ -196,7 +196,7 @@ bal_mhw_ev_per
 bal_no_ev_per
 
 # Save balanced compound df
-csvfile <- "/comp_balanced_df.csv"
+csvfile <- "comp_balanced_df.csv"
 write.table(comp_bal_df,csvfile,sep=",") #save balanced lchl dataset
     
 
