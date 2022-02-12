@@ -185,7 +185,7 @@ w19_chl_ev <- nrow(subset(comp_19_df, compCat=="2")) #7204
 w19_mhw_ev <- nrow(subset(comp_19_df, compCat=="1")) #34428
 w19_no_ev <- nrow(subset(comp_19_df, compCat=="0")) #50450
 
-cat3_tot = x19_comp_ev + w19_comp_ev
+cat3_tot = x19_comp_ev + w19_comp_ev #31474
 n_2rows_remov = x19_chl_ev + w19_chl_ev - cat3_tot
 n_1rows_remov = x19_mhw_ev + w19_mhw_ev - cat3_tot
 n_0rows_remov = x19_no_ev + w19_no_ev - cat3_tot
@@ -217,10 +217,10 @@ comp_bal_df <- comp_bal_df[-sampled.cats, ]
 
 # Find the balanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
 bal_comp_ev <- nrow(subset(comp_bal_df, compCat=="3")) #number of compound events, 31474
-bal_chl_ev <- nrow(subset(comp_bal_df, compCat=="2")) #lchl only events, 35798
-bal_mhw_ev <- nrow(subset(comp_bal_df, compCat=="1")) #mhw only events, 63022
-bal_no_ev <- nrow(subset(comp_bal_df, compCat=="0")) #no events, 79044
-bal_tot_ev <- bal_comp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev
+bal_chl_ev <- nrow(subset(comp_bal_df, compCat=="2")) #lchl only events, 31474
+bal_mhw_ev <- nrow(subset(comp_bal_df, compCat=="1")) #mhw only events, 31474
+bal_no_ev <- nrow(subset(comp_bal_df, compCat=="0")) #no events, 31474
+bal_tot_ev <- bal_comp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #125896 total observations
 
 bal_comp_ev_per <- (bal_comp_ev/bal_tot_ev)*100 #25% compound events (3)
 bal_chl_ev_per <- (bal_chl_ev/bal_tot_ev)*100 #25% lchl only (2)
@@ -235,5 +235,8 @@ bal_no_ev_per
 csvfile <- "comp_balanced_df.csv"
 write.table(comp_bal_df,csvfile,sep=",") #save balanced lchl dataset
     
-
+##################################### Calculate Moving Averages #####################################
+    
 ##################################### Train Compound RF Model #####################################
+
+##################################### Test Compound RF Model #####################################
