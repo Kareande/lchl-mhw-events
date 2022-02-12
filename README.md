@@ -8,7 +8,7 @@ compRF contains code for:
     (2)categorizing events within the combined compound dataset as no event, mhw event, lchl event or compound event,
     (3)balancing the compound dataset,
     (4)training compound event RF model,
-    (5)testing compound event RF model,
+    (5)testing compound event RF model
     
 extractNC contains code for:
     (1)saving .NC data in readable viewable text file,
@@ -21,7 +21,7 @@ lchlRF contains code for:
     (1)categorizing Lchl data as negligable, moderate, severe, and extreme,
     (2)balancing Lchl dataset,
     (3)training lchl event RF model,
-    (4)testing lchl event RF model,
+    (4)testing lchl event RF model
     
 
 Processed, unbalanced data can be found here: https://www.dropbox.com/sh/3locafvuzq9tylg/AAB5bwDgFJCzlJ-NLKiNwmbTa?dl=0What
