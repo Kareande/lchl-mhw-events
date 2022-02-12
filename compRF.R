@@ -152,10 +152,10 @@ write.table(comp_df,csvfile,sep=",")
 ##################################### Balance Compound Df #####################################
 # Get df with mhw and lchl compound events
 comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE) #get df with categorized mhw and lchl
-#head(comp_df)
+head(comp_df)
 #tail(comp_df)
     
-# Find the percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
+# Find the unbalanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
 comp_ev <- nrow(subset(comp_df, compCat=="3")) #number of compound events, 31474
 chl_ev <- nrow(subset(comp_df, compCat=="2")) #lchl only events, 406426
 mhw_ev <- nrow(subset(comp_df, compCat=="1")) #mhw only events, 232268
@@ -170,14 +170,32 @@ comp_ev_per
 chl_ev_per
 mhw_ev_per
 no_ev_per
-tot_ev
+    
+# Calculate how many rows of each category to remove
+comp_x19_df <- subset(comp_df, yr!=2019)
+comp_19_df <- subset(comp_df, yr==2019)
+
+x19_comp_ev <- nrow(subset(comp_x19_df, compCat=="3")) #28594
+x19_chl_ev <- nrow(subset(comp_x19_df, compCat=="2")) #399222
+x19_mhw_ev <- nrow(subset(comp_x19_df, compCat=="1")) #197840
+x19_no_ev <- nrow(subset(comp_x19_df, compCat=="0")) #1997636
+
+w19_comp_ev <- nrow(subset(comp_19_df, compCat=="3")) #2880
+w19_chl_ev <- nrow(subset(comp_19_df, compCat=="2")) #7204
+w19_mhw_ev <- nrow(subset(comp_19_df, compCat=="1")) #34428
+w19_no_ev <- nrow(subset(comp_19_df, compCat=="0")) #50450
+
+cat3_tot = x19_comp_ev + w19_comp_ev
+n_2rows_remov = x19_chl_ev + w19_chl_ev - cat3_tot
+n_1rows_remov = x19_mhw_ev + w19_mhw_ev - cat3_tot
+n_0rows_remov = x19_no_ev + w19_no_ev - cat3_tot
     
 # Isolate and remove n rows where year<=2019 and compCat==0
 set.seed(313)
-comp_x19_df <- subset(comp_df, yr!=2019)
+comp_x19_df <- subset(comp_df, yr!=2019) #exclude 2019
 conditions <- comp_df$compCat==0 #set conditions for removed rows, cat==0
 rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
-n_rows_remov <- (nrow(subset(comp_x19_df, compCat==0))-nrow(subset(comp_x19_df, compCat==3)))
+n_rows_remov <- n_0rows_remov
 sampled.cats <- sample(rows_remov, n_rows_remov) #sample to remove
 comp_bal_df <- comp_df[-sampled.cats, ]
     
@@ -185,7 +203,7 @@ comp_bal_df <- comp_df[-sampled.cats, ]
 comp_x19_df <- subset(comp_bal_df, yr!=2019)
 conditions <- comp_bal_df$compCat==2 #set conditions for removed rows, cat==2
 rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
-n_rows_remov <- (nrow(subset(comp_x19_df, compCat==2))-nrow(subset(comp_x19_df, compCat==3)))
+n_rows_remov <- n_2rows_remov
 sampled.cats <- sample(rows_remov, n_rows_remov)
 comp_bal_df <- comp_bal_df[-sampled.cats, ]
     
@@ -193,7 +211,7 @@ comp_bal_df <- comp_bal_df[-sampled.cats, ]
 comp_x19_df <- subset(comp_bal_df, yr!=2019)
 conditions <- comp_bal_df$compCat==1 #set conditions for removed rows, cat==1
 rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
-n_rows_remov <- (nrow(subset(comp_x19_df, compCat==1))-nrow(subset(comp_x19_df, compCat==3)))
+n_rows_remov <- n_1rows_remov
 sampled.cats <- sample(rows_remov, n_rows_remov)
 comp_bal_df <- comp_bal_df[-sampled.cats, ]
 
@@ -204,10 +222,10 @@ bal_mhw_ev <- nrow(subset(comp_bal_df, compCat=="1")) #mhw only events, 63022
 bal_no_ev <- nrow(subset(comp_bal_df, compCat=="0")) #no events, 79044
 bal_tot_ev <- bal_comp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev
 
-bal_comp_ev_per <- (bal_comp_ev/bal_tot_ev)*100 #15.0350151429745% compound events (3)
-bal_chl_ev_per <- (bal_chl_ev/bal_tot_ev)*100 #17.1005741910212% lchl only (2)
-bal_mhw_ev_per <- (bal_mhw_ev/bal_tot_ev)*100 #30.1053798163735% mhw only (1)
-bal_no_ev_per <- (bal_no_ev/bal_tot_ev)*100 #37.7590308496307% no event (0)
+bal_comp_ev_per <- (bal_comp_ev/bal_tot_ev)*100 #25% compound events (3)
+bal_chl_ev_per <- (bal_chl_ev/bal_tot_ev)*100 #25% lchl only (2)
+bal_mhw_ev_per <- (bal_mhw_ev/bal_tot_ev)*100 #25% mhw only (1)
+bal_no_ev_per <- (bal_no_ev/bal_tot_ev)*100 #25% no event (0)
 bal_comp_ev_per
 bal_chl_ev_per
 bal_mhw_ev_per
