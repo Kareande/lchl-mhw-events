@@ -1,8 +1,8 @@
 setwd("/auto/home/kareande/mhwData")
-library(randomForest)
 library(ranger)
 library(vip)
 library(tidymodels)
+library(foreach)
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
@@ -186,7 +186,7 @@ end_time - start_time
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf("/auto/home/kareande/lchl-mhw-events/mtryMinN200Acc.pdf")
+pdf("/auto/home/kareande/lchl-mhw-events/lchl200Acc.pdf")
 
 tune_res %>%
   collect_metrics() %>%
@@ -204,7 +204,7 @@ tune_res %>%
 dev.off()
 
 # Visualize results of k-fold analysis; AUC
-pdf("/auto/home/kareande/lchl-mhw-events/mtryMinN200AUC.pdf")
+pdf("/auto/home/kareande/lchl-mhw-events/lchl200AUC.pdf")
 tune_res %>%
   collect_metrics() %>%
   filter(.metric == "roc_auc") %>%
@@ -252,7 +252,7 @@ end_time <- Sys.time()
 doParallel::stopImplicitCluster()
 end_time - start_time
 
-save(regular_res, file="200TRangerTune2.RData")
+save(regular_res, file="lchl200TRangerTune2.RData")
     
 # Deciding on best model, roc_auc or accuracy
 best_rf <- select_best(regular_res, "roc_auc")
@@ -268,7 +268,7 @@ lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
 
 # Check variable importance for training data
-pdf("/auto/home/kareande/workspace/VarImpor200T.pdf")
+pdf("/auto/home/kareande/lchl-mhw-events/VarImpor200T.pdf")
 
 library(vip)
 final_rf %>%
