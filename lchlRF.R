@@ -1,8 +1,10 @@
 setwd("/auto/home/kareande/mhwData")
-library(ranger)
-library(vip)
-library(tidymodels)
-library(foreach)
+library("ranger") #randomForest package
+library("vip") #variable importance plots
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
@@ -10,10 +12,8 @@ lchl_df <- read.csv("master_with_contime_df.csv", sep=",", header=TRUE)
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
-# Select chl column
-chl_col <- lchl_df[,9] 
-
 # Define LChl categories
+chl_col <- lchl_df[,9] #isolate chl column
 cat1 <- quantile(chl_col,probs=0.1) #what value is the 10th percentile cutoff, or category 1 minimum value
 cat2 <- quantile(chl_col,probs=0.075) #category 2 minimum
 cat3 <- quantile(chl_col,probs=0.05) #category 3 minimum
@@ -30,7 +30,7 @@ min(chl_col) #9.74359052937264e-06 mg/m^3
 # Divide LChl events into 3 cats
 lchl_cat3 <- vector() #create empty vector to fill with categories
 x <- length(chl_col) #get number of datapoints
-#doParallel::registerDoParallel()
+doParallel::registerDoParallel()
 for(i in 1:x) { #loop to fill out categories
     if (is.na(chl_col[i])) { #if value i of chl column is NA,
         lchl_cat3[i] = 0       #then the category is 0
@@ -42,7 +42,11 @@ for(i in 1:x) { #loop to fill out categories
         lchl_cat3[i] = 0 #then the category is 0
     }
         }
-#doParallel::stopImplicitCluster()
+    
+ 
+    } #IGNORE; only to prevent indenting for rest of script
+
+doParallel::stopImplicitCluster()
 length(lchl_cat3) #5324099
 nrow(lchl_df) #5324099
 
@@ -138,29 +142,37 @@ write.table(lchl_bal_df,csvfile,sep=",")
 
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
-workingset=read.csv("chl3_balanced_df.csv", header=TRUE)
-workingset[workingset$lchlCat == 0,]$lchlCat="negligable"
-workingset[workingset$lchlCat == 1,]$lchlCat="moderate"
-workingset[workingset$lchlCat == 2,]$lchlCat="severe"
-#workingset[workingset$lchlCat == 2,]$lchlCat="extreme"
+workingset <- read.csv("chl3_balanced_df.csv", header=TRUE)
+workingset <- workingset[,-9] #remove lchl category
+workingset[workingset$lchlCat == 0,]$lchlCat <- "negligable"
+workingset[workingset$lchlCat == 1,]$lchlCat <- "moderate"
+workingset[workingset$lchlCat == 2,]$lchlCat <- "severe"
 workingset$lchlCat = as.factor(workingset$lchlCat)
 
 head(workingset, n=10)
 
+# Split data into training and testing sets (broken)
+# Causes training data only contain category "moderate"
+#set.seed(5)
+#lchl_split <- initial_split(workingset, strata = lchlCat)
+#lchl_train <- training(lchl_split)
+#lchl_test <- testing(lchl_split)
+
 # Split data into training and testing sets
-set.seed(3939)
-lchl_split <- initial_split(workingset, strata = lchlCat)
-lchl_train <- training(lchl_split)
-lchl_test <- testing(lchl_split)
+set.seed(5)
+lchl_train <- workingset[sample(nrow(workingset), 633346), ]
+remove_r <- which(lchl_train == TRUE)
+lchl_test <- workingset[-remove_r, ]
+lchl_test <- lchl_test[sample(nrow(lchl_test), 211118), ]
 lchl_rec <- recipe(lchlCat ~ ., data = lchl_train)
 
-head(lchl_train, n=10)
+head(lchl_train)
 
-# Create model specification
+# Create model specification using vip package and ranger engine
 tune_spec <- rand_forest(
-  mtry = tune(),
-  trees = 200, #change number of trees
-  min_n = tune()
+  mtry = tune(), #number of variables sampled
+  trees = 200, #number of trees
+  min_n = tune() #min number of datapoints for node to split
 ) %>%
   set_mode("classification") %>%
   set_engine("ranger")
@@ -170,27 +182,27 @@ tune_wf <- workflow() %>%
   add_model(tune_spec)
 
 # Training model
-doParallel::registerDoParallel()
-start_time <- Sys.time()
-lchl_folds <- vfold_cv(lchl_train)
+#takes 32.89824 on SILT w/ 16 cores, 150 trees
+doParallel::registerDoParallel(16)
+system.time({
+    start_time <- Sys.time()
+    lchl_folds <- vfold_cv(lchl_train)
 
-tune_res <- tune_grid(
-  tune_wf,
-  resamples = lchl_folds,
-  grid = 10)
-
-end_time <- Sys.time()
+    tune_res <- tune_grid(
+      tune_wf,
+      resamples = lchl_folds,
+      grid = 10)
+})
 doParallel::stopImplicitCluster()
-end_time - start_time
 
 tune_res
 
-# Visualize results of k-fold analysis; accuracy
-pdf("/auto/home/kareande/lchl-mhw-events/lchl200Acc.pdf")
+# Visualize results of k-fold analysis training
+pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainLchl200T.pdf")
 
 tune_res %>%
   collect_metrics() %>%
-  filter(.metric == "accuracy") %>%
+  filter(.metric == "accuracy") %>% #or roc_auc
   select(mean, min_n, mtry) %>%
   pivot_longer(min_n:mtry,
                values_to = "value",
@@ -203,31 +215,16 @@ tune_res %>%
 
 dev.off()
 
-# Visualize results of k-fold analysis; AUC
-pdf("/auto/home/kareande/lchl-mhw-events/lchl200AUC.pdf")
-tune_res %>%
-  collect_metrics() %>%
-  filter(.metric == "roc_auc") %>%
-  select(mean, min_n, mtry) %>%
-  pivot_longer(min_n:mtry,
-               values_to = "value",
-               names_to = "parameter"
-  ) %>%
-  ggplot(aes(value, mean, color = parameter)) +
-  geom_point(show.legend = FALSE) +
-  facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "AUC")
-
-dev.off()
-
 tune_res
 
     
 ##################################### Refined Train LChl RF #####################################
-# New model specs for re-training based on previous results
-mtry_min_range <- 9
-mtry_max_range <- 11
-n_min_range <- 1
+# Refine model specs for re-training based on previous results
+#for 150 trees; mtry 3:4, min_n 5:10 REDO WITH 150T---------------------------
+#for 200 trees; mtry x:x, min_n x:x
+mtry_min_range <- 3
+mtry_max_range <- 4
+n_min_range <- 5
 n_max_range <- 10
 
 rf_grid <- grid_regular(
@@ -235,27 +232,38 @@ rf_grid <- grid_regular(
   min_n(range = c(n_min_range, n_max_range)),
   levels = 10
 )
-
+    
+nrow(rf_grid)
 rf_grid
     
-# Train refined models
-start_time <- Sys.time()
-doParallel::registerDoParallel()
-
-regular_res <- tune_grid(
-  tune_wf,
-  resamples = lchl_folds,
-  grid = rf_grid
-)
-
-end_time <- Sys.time()
+# Train models using refined specs
+#41 min on SILT w/ 16 cores, 12 rows
+doParallel::registerDoParallel(16);
+system.time({
+    regular_res <- tune_grid(
+      tune_wf,
+      resamples = lchl_folds,
+      grid = rf_grid
+    )
+})
 doParallel::stopImplicitCluster()
-end_time - start_time
-
-save(regular_res, file="lchl200TRangerTune2.RData")
     
-# Deciding on best model, roc_auc or accuracy
-best_rf <- select_best(regular_res, "roc_auc")
+# Visualize refined results
+pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnLchl200T.pdf")
+
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "accuracy") %>% #or roc_auc
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "Accuracy")
+
+dev.off()
+
+# Deciding on best model
+best_rf <- select_best(regular_res, "accuracy") #or roc_auc
 
 final_rf <- finalize_model(
   tune_spec,
@@ -263,26 +271,29 @@ final_rf <- finalize_model(
 )
 
 final_rf
+    
+save(final_rf, file="finalLchl200TRF.RData") #save final model
+
+# Check variable importance for trained model
+pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnLchl200T.pdf")
 
 lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
 
-# Check variable importance for training data
-pdf("/auto/home/kareande/lchl-mhw-events/VarImpor200T.pdf")
-
-library(vip)
 final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
   fit(lchlCat ~ .,
-    data = juice(lchl_prep)
+    data = juiced
   ) %>%
   vip(geom = "point")
 
 dev.off()
     
-    
 ##################################### Test LChl RF Model #####################################
-# Use testing data in model
+# Load final model
+final_rf <- load("finalLchRF.RData")
+
+# Use testing data in final model
 final_wf <- workflow() %>%
   add_recipe(lchl_rec) %>%
   add_model(final_rf)
@@ -292,15 +303,34 @@ final_res <- final_wf %>%
 
 final_res %>%
   collect_metrics()
+    
+# Produce confusion matrix
+library(ggplot2)
+ggplot(data =  dframe, mapping = aes(x = label, y = method)) +
+  geom_tile(aes(fill = value), colour = "white") +
+  geom_text(aes(label = sprintf("%1.0f",value)), vjust = 1) +
+  scale_fill_gradient(low = "white", high = "steelblue")
+TClass <- factor(c(0, 0, 1, 1))
+PClass <- factor(c(0, 1, 0, 1))
+Y      <- c(2816, 248, 34, 235)
+df <- data.frame(TClass, PClass, Y)
 
-# Add column to data with "Correct" and "Incorrect" predictions
+library(ggplot2)
+ggplot(data =  df, mapping = aes(x = TClass, y = PClass)) +
+  geom_tile(aes(fill = Y), colour = "white") +
+  geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme_bw() + theme(legend.position = "none")
+    
+# Another confusion matrix version
+cm <- confusionMatrix(factor(y.pred), factor(y.test), dnn = c("Prediction", "Reference"))
 
-final_res %>%
-  collect_predictions() %>%
-  mutate(correct = case_when(
-    lchlCat == .pred_class ~ "Correct",
-    TRUE ~ "Incorrect"
-  )) %>%
-  bind_cols(lchl_test)
+plt <- as.data.frame(cm$table)
+plt$Prediction <- factor(plt$Prediction, levels=rev(levels(plt$Prediction)))
 
-final_res
+ggplot(plt, aes(Prediction,Reference, fill= Freq)) +
+        geom_tile() + geom_text(aes(label=Freq)) +
+        scale_fill_gradient(low="white", high="#009194") +
+        labs(x = "Reference",y = "Prediction") +
+        scale_x_discrete(labels=c("Class_1","Class_2","Class_3","Class_4")) +
+        scale_y_discrete(labels=c("Class_4","Class_3","Class_2","Class_1"))
