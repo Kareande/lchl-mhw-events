@@ -1,2 +1,3 @@
 # Ignore .ipnyb files
 *.ipynb
+katsMovingLags.m
