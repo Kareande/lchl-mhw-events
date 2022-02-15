@@ -1,5 +1,10 @@
-setwd("/auto/home/kareande/mhwData") #working directory with datasets
-library("foreach")
+setwd("/auto/home/kareande/mhwData")
+library("ranger") #randomForest package
+library("vip") #variable importance plots
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
 #install.packages()
 
 ##################################### Define LChl categories #####################################
@@ -121,6 +126,9 @@ for(i in 1:x) { #loop to fill out categories
         comp_cat[i] = 0 #then the category is 0
     }
         }
+        
+    } #IGNORE; only to prevent indenting for rest of script
+
 #doParallel::stopImplicitCluster()
 length(comp_cat) #2718254
 
@@ -148,7 +156,11 @@ colnames(comp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil"
 # Save df with compound event categories
 csvfile <- "comp_unbalanced_df.csv"
 write.table(comp_df,csvfile,sep=",")
-    
+
+
+##################################### Calculate Moving Averages #####################################
+
+
 ##################################### Balance Compound Df #####################################
 # Get df with mhw and lchl compound events
 comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE) #get df with categorized mhw and lchl
@@ -235,8 +247,160 @@ bal_no_ev_per
 csvfile <- "comp_balanced_df.csv"
 write.table(comp_bal_df,csvfile,sep=",") #save balanced lchl dataset
     
-##################################### Calculate Moving Averages #####################################
-    
-##################################### Train Compound RF Model #####################################
+
+##################################### Exploratory Train LChl RF #####################################
+# Prepare processed Lchl data
+workingset=read.csv("comp_balanced_df.csv", header=TRUE)
+workingset <- workingset[,c(-18,-19)] #remove the mhw and lchl cat columns
+workingset[workingset$compCat == 3,]$compCat="Compound"
+workingset[workingset$compCat == 2,]$compCat="LChl Event"
+workingset[workingset$compCat == 1,]$compCat="MHW Event"
+workingset[workingset$compCat == 0,]$compCat="No event"
+workingset$compCat = as.factor(workingset$compCat)
+
+head(workingset, n=10)
+
+# Split data into training and testing sets
+set.seed(3939)
+comp_split <- initial_split(workingset, strata = compCat)
+comp_train <- training(comp_split)
+comp_test <- testing(comp_split)
+comp_rec <- recipe(compCat ~ ., data = comp_train)
+
+head(comp_train, n=10)
+
+# Create model specification
+tune_spec <- rand_forest(
+  mtry = tune(), #number of variables sampled
+  trees = 200, #change number of trees
+  min_n = tune(), #min number of datapoints for node to split
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+
+tune_wf <- workflow() %>%
+  add_recipe(comp_rec) %>%
+  add_model(tune_spec)
+
+# Training model
+doParallel::registerDoParallel(8)
+start_time <- Sys.time()
+comp_folds <- vfold_cv(comp_train)
+
+tune_res <- tune_grid(
+  tune_wf,
+  resamples = comp_folds,
+  grid = 10)
+
+end_time <- Sys.time()
+doParallel::stopImplicitCluster()
+end_time - start_time
+
+tune_res
+
+# Visualize results of k-fold analysis; accuracy
+pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainComp200T.pdf")
+
+tune_res %>%
+  collect_metrics() %>%
+  filter(.metric == "accuracy") %>%
+  select(mean, min_n, mtry) %>%
+  pivot_longer(min_n:mtry,
+               values_to = "value",
+               names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "Accuracy")
+
+dev.off()
+
+
+##################################### Refined Train LChl RF #####################################
+# Refine model specs for re-training based on previous results
+#for 200 trees; mtry 1:9, min_n 3,6,7
+n_min_range <- 2
+n_max_range <- 9
+mtry_min_range <- 6
+mtry_max_range <- 7
+
+rf_grid <- grid_regular(
+  mtry(range = c(mtry_min_range, mtry_max_range)),
+  min_n(range = c(n_min_range, n_max_range)),
+  levels = 10
+)
+
+rf_grid
+
+# Train models using refined specs
+doParallel::registerDoParallel(8)
+start_time <- Sys.time()
+
+regular_res <- tune_grid(
+  tune_wf,
+  resamples = comp_folds,
+  grid = rf_grid
+)
+
+end_time <- Sys.time()
+doParallel::stopImplicitCluster()
+end_time - start_time
+
+# Visualize refined results
+pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnComp200T.pdf")
+
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "accuracy") %>% #or roc_auc
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "Accuracy")
+
+dev.off()
+
+# Deciding on best model
+best_rf <- select_best(regular_res, "roc_auc")
+
+final_rf <- finalize_model(
+  tune_spec,
+  best_rf
+)
+
+final_rf
+
+save(final_rf, file="finalComp200TRF.RData") #save final model
+
+# Check variable importance for training data
+pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnComp200T.pdf")
+lchl_prep <- prep(lchl_rec)
+juiced <- juice(lchl_prep)
+
+library(vip)
+final_rf %>%
+  set_engine("ranger", importance = "permutation") %>%
+  fit(lchlCat ~ .,
+    data = juice(lchl_prep)
+  ) %>%
+  vip(geom = "point")
+
+dev.off()
+
 
 ##################################### Test Compound RF Model #####################################
+# Load final model
+final_rf <- load("finalComp200TRF.RData")
+
+# Use testing data in model
+final_wf <- workflow() %>%
+  add_recipe(lchl_rec) %>%
+  add_model(final_rf)
+
+final_res <- final_wf %>%
+  last_fit(lchl_split)
+
+final_res %>%
+  collect_metrics()
+

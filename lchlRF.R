@@ -182,7 +182,6 @@ tune_wf <- workflow() %>%
   add_model(tune_spec)
 
 # Training model
-#takes 32.89824 on SILT w/ 16 cores, 150 trees
 doParallel::registerDoParallel(16)
 system.time({
     start_time <- Sys.time()
@@ -291,7 +290,7 @@ dev.off()
     
 ##################################### Test LChl RF Model #####################################
 # Load final model
-final_rf <- load("finalLchRF.RData")
+final_rf <- load("finalLchl200TRF.RData")
 
 # Use testing data in final model
 final_wf <- workflow() %>%
