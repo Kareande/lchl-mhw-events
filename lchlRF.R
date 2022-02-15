@@ -177,16 +177,15 @@ tune_spec <- rand_forest(
   set_mode("classification") %>%
   set_engine("ranger")
 
+lchl_folds <- vfold_cv(lchl_train)
+
 tune_wf <- workflow() %>%
   add_recipe(lchl_rec) %>%
   add_model(tune_spec)
 
 # Training model
-doParallel::registerDoParallel(16)
+doParallel::registerDoParallel(8)
 system.time({
-    start_time <- Sys.time()
-    lchl_folds <- vfold_cv(lchl_train)
-
     tune_res <- tune_grid(
       tune_wf,
       resamples = lchl_folds,
@@ -197,7 +196,7 @@ doParallel::stopImplicitCluster()
 tune_res
 
 # Visualize results of k-fold analysis training
-pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainLchl200T.pdf")
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -237,7 +236,7 @@ rf_grid
     
 # Train models using refined specs
 #41 min on SILT w/ 16 cores, 12 rows
-doParallel::registerDoParallel(16);
+doParallel::registerDoParallel(10);
 system.time({
     regular_res <- tune_grid(
       tune_wf,
@@ -248,7 +247,7 @@ system.time({
 doParallel::stopImplicitCluster()
     
 # Visualize refined results
-pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnLchl200T.pdf")
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -270,11 +269,13 @@ final_rf <- finalize_model(
 )
 
 final_rf
-    
-save(final_rf, file="finalLchl200TRF.RData") #save final model
+
+# Save final model
+file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
+save(final_rf, file=file_name)
 
 # Check variable importance for trained model
-pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnLchl200T.pdf")
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
 
 lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
@@ -290,7 +291,8 @@ dev.off()
     
 ##################################### Test LChl RF Model #####################################
 # Load final model
-final_rf <- load("finalLchl200TRF.RData")
+file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
+final_rf <- load(file_name)
 
 # Use testing data in final model
 final_wf <- workflow() %>%
