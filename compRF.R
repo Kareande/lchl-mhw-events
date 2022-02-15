@@ -269,10 +269,13 @@ comp_rec <- recipe(compCat ~ ., data = comp_train)
 
 head(comp_train, n=10)
 
+# Designate number of trees
+n_trees <- 200
+
 # Create model specification
 tune_spec <- rand_forest(
   mtry = tune(), #number of variables sampled
-  trees = 200, #change number of trees
+  trees = n_trees, #change number of trees
   min_n = tune(), #min number of datapoints for node to split
 ) %>%
   set_mode("classification") %>%
@@ -299,7 +302,7 @@ end_time - start_time
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainComp200T.pdf")
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainComp",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -348,7 +351,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnComp200T.pdf")
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnComp",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -371,10 +374,12 @@ final_rf <- finalize_model(
 
 final_rf
 
-save(final_rf, file="finalComp200TRF.RData") #save final model
+#save final model
+file_name <- gsub(" ", "", paste("finalComp",n_trees,"TRF.RData")))
+save(final_rf, file=file_name) 
 
 # Check variable importance for training data
-pdf("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnComp200T.pdf")
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnComp",n_trees,"T.pdf")))
 lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
 
@@ -391,7 +396,8 @@ dev.off()
 
 ##################################### Test Compound RF Model #####################################
 # Load final model
-final_rf <- load("finalComp200TRF.RData")
+file_name <- gsub(" ", "", paste("finalComp",n_trees,"TRF.RData")))
+final_rf <- load(file_name)
 
 # Use testing data in model
 final_wf <- workflow() %>%
