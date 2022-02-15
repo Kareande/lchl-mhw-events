@@ -319,11 +319,11 @@ dev.off()
 
 ##################################### Refined Train LChl RF #####################################
 # Refine model specs for re-training based on previous results
-#for 200 trees; mtry x:x, min_n x:x
-mtry_min_range <- 9
-mtry_max_range <- 11
-n_min_range <- 1
-n_max_range <- 10
+#for 200 trees; mtry 1:9, min_n 3,6,7
+n_min_range <- 2
+n_max_range <- 9
+mtry_min_range <- 6
+mtry_max_range <- 7
 
 rf_grid <- grid_regular(
   mtry(range = c(mtry_min_range, mtry_max_range)),
@@ -334,12 +334,12 @@ rf_grid <- grid_regular(
 rf_grid
 
 # Train models using refined specs
-start_time <- Sys.time(8)
-doParallel::registerDoParallel()
+doParallel::registerDoParallel(8)
+start_time <- Sys.time()
 
 regular_res <- tune_grid(
   tune_wf,
-  resamples = lchl_folds,
+  resamples = comp_folds,
   grid = rf_grid
 )
 
