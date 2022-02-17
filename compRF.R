@@ -410,3 +410,13 @@ final_res <- final_wf %>%
 final_res %>%
   collect_metrics()
 
+# Produce confusion matrix
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/confMatComp",n_trees,"T.pdf")))
+
+final_res %>%
+  collect_predictions() %>%
+  conf_mat(compCat, .pred_class) %>%
+  autoplot(type = "heatmap")
+
+dev.off()
+
