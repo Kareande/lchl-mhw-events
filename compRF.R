@@ -251,7 +251,7 @@ write.table(comp_bal_df,csvfile,sep=",") #save balanced lchl dataset
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
 workingset=read.csv("comp_balanced_df.csv", header=TRUE)
-workingset <- workingset[,c(-18,-19)] #remove the mhw and lchl cat columns
+workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
 workingset[workingset$compCat == 3,]$compCat="Compound"
 workingset[workingset$compCat == 2,]$compCat="LChl Event"
 workingset[workingset$compCat == 1,]$compCat="MHW Event"
