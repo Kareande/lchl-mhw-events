@@ -380,8 +380,8 @@ save(final_rf, file=file_name)
 
 # Check variable importance for training data
 pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnComp",n_trees,"T.pdf")))
-lchl_prep <- prep(lchl_rec)
-juiced <- juice(lchl_prep)
+comp_prep <- prep(comp_rec)
+juiced <- juice(comp_prep)
 
 library(vip)
 final_rf %>%
