@@ -302,7 +302,7 @@ end_time - start_time
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainComp",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -351,7 +351,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnComp",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -375,11 +375,11 @@ final_rf <- finalize_model(
 final_rf
 
 #save final model
-file_name <- gsub(" ", "", paste("finalComp",n_trees,"TRF.RData")))
+file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData"))
 save(final_rf, file=file_name) 
 
 # Check variable importance for training data
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnComp",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
 comp_prep <- prep(comp_rec)
 juiced <- juice(comp_prep)
 
@@ -396,7 +396,7 @@ dev.off()
 
 ##################################### Test Compound RF Model #####################################
 # Load final model
-file_name <- gsub(" ", "", paste("finalComp",n_trees,"TRF.RData")))
+file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData"))
 final_rf <- load(file_name)
 
 # Use testing data in model
@@ -411,7 +411,7 @@ final_res %>%
   collect_metrics()
 
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/confMatComp",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/confMatCompNoChl",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
