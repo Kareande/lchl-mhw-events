@@ -401,11 +401,11 @@ final_rf <- load(file_name)
 
 # Use testing data in model
 final_wf <- workflow() %>%
-  add_recipe(lchl_rec) %>%
+  add_recipe(comp_rec) %>%
   add_model(final_rf)
 
 final_res <- final_wf %>%
-  last_fit(lchl_split)
+  last_fit(comp_split)
 
 final_res %>%
   collect_metrics()
