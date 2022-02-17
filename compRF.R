@@ -386,7 +386,7 @@ juiced <- juice(comp_prep)
 library(vip)
 final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
-  fit(lchlCat ~ .,
+  fit(compCat ~ .,
     data = juice(comp_prep)
   ) %>%
   vip(geom = "point")
