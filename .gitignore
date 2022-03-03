@@ -1,3 +1,5 @@
 # Ignore .ipnyb files
 *.ipynb
 katsMovingLags.m
+.RData
+.Rhistory
