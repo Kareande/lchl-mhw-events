@@ -9,7 +9,9 @@ library("plot.matrix") #confusion matrix
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-lchl_df <- read.csv("master_with_contime_df.csv", sep=",", header=TRUE)
+file_name <- paste("master_with_contime_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+lchl_df <- read.csv(file_path, sep=",", header=TRUE)
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -52,13 +54,16 @@ lchl_df <- cbind(lchl_df,lchl_cat)
 colnames(lchl_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df
-csvfile <- "chl_unbalanced_df.csv"
-write.table(lchl_df,csvfile,sep=",")
+file_name <- paste("chl_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(lchl_df,file_path,sep=",")
 
 
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get LChl df
-lchl_df <- read.csv("chl_unbalanced_df.csv", sep=",", header=TRUE) #get df with chl cats
+file_name <- paste("chl_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+lchl_df <- read.csv(file_path, sep=",", header=TRUE) #get df with chl cats
 head(lchl_df)
 #tail(lchl_df)
 
@@ -99,13 +104,16 @@ nrow(comp_df)
 
 # Save compound df
 comp_df <- na.omit(comp_df) #remove NA values
-csvfile <- "comp_unbalanced_df.csv"
-write.table(comp_df,csvfile,sep=",")
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(file_path,csvfile,sep=",")
 
 
 ##################################### Add Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
-comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE)
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+comp_df <- read.csv(file_path, sep=",", header=TRUE)
 chl_col <- comp_df[,18] #select chl cat column
 mhw_col <- comp_df[,19] #select mhw cat column
 
@@ -154,16 +162,16 @@ colnames(comp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil"
                        "qnet","slp","sat","wndSp","sst","sstRoC","lchlCat","mhwCat","compCat")
     
 # Save df with compound event categories
-csvfile <- "comp_unbalanced_df.csv"
-write.table(comp_df,csvfile,sep=",")
-
-
-##################################### Calculate Moving Averages #####################################
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(file_path,csvfile,sep=",")
 
 
 ##################################### Balance Compound Df #####################################
 # Get df with mhw and lchl compound events
-comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE) #get df with categorized mhw and lchl
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+comp_df <- read.csv(file_path, sep=",", header=TRUE) #get df with categorized mhw and lchl
 head(comp_df)
 #tail(comp_df)
     
@@ -244,13 +252,16 @@ bal_mhw_ev_per
 bal_no_ev_per
 
 # Save balanced compound df
-csvfile <- "comp_balanced_df.csv"
-write.table(comp_bal_df,csvfile,sep=",") #save balanced lchl dataset
+file_name <- paste("comp_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(file_path,csvfile,sep=",") #save balanced lchl dataset
     
 
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
-workingset=read.csv("comp_balanced_df.csv", header=TRUE)
+file_name <- paste("comp_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+workingset=read.csv(file_path, header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
 workingset[workingset$compCat == 3,]$compCat="Compound"
 workingset[workingset$compCat == 2,]$compCat="LChl Event"
@@ -302,7 +313,7 @@ end_time - start_time
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -351,7 +362,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -374,12 +385,13 @@ final_rf <- finalize_model(
 
 final_rf
 
-#save final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData"))
-save(final_rf, file=file_name) 
+# Save final model
+file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+save(final_rf, file=file_path) 
 
 # Check variable importance for training data
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
 comp_prep <- prep(comp_rec)
 juiced <- juice(comp_prep)
 
@@ -396,8 +408,9 @@ dev.off()
 
 ##################################### Test Compound RF Model #####################################
 # Load final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData"))
-final_rf <- load(file_name)
+file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+final_rf <- load(file_path)
 
 # Use testing data in model
 final_wf <- workflow() %>%
@@ -411,7 +424,7 @@ final_res %>%
   collect_metrics()
 
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/confMatCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/confMatCompNoChl",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
@@ -419,4 +432,3 @@ final_res %>%
   autoplot(type = "heatmap")
 
 dev.off()
-
