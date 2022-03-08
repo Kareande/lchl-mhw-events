@@ -1,18 +1,12 @@
-#setwd("/auto/home/kareande/mhwData")
-library("ranger") #randomForest package
-library("vip") #variable importance plots
-library("tidymodels") #tidyverse models
+setwd("/home/kareande/lchl-mhw-events")
 library("foreach") #parallel processing
 library("doParallel") #parallel processing
-library("ggplot2") #aesthetic plotting
-library("plot.matrix") #confusion matrix
 #install.packages()
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-lchl_df <- read.csv(file_path, sep=",", header=TRUE)
+file_name <- paste("master_with_contime_df.csv") #name of df
+lchl_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -48,7 +42,6 @@ for(i in 1:x) { #loop to fill out categories
     }
         }
 doParallel::stopImplicitCluster()
-length(lchl_cat)
 
 # Add category column to df
 lchl_df <- cbind(lchl_df,lchl_cat)
@@ -63,16 +56,14 @@ write.table(lchl_df,file_path,sep=",")
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get LChl df
 file_name <- paste("chl_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-lchl_df <- read.csv(file_path, sep=",", header=TRUE) #get df with chl cats
+lchl_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
 head(lchl_df)
 #tail(lchl_df)
 
 # Get MHW df
 file_name <- paste("mhw_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-mhw_df <- read.csv(file_path, sep=",", header=TRUE) #get df with mhw cats
-mhw_df$mhwCat[mhw_df$mhwCat > 0] <- 1 #condense MHW cats into two categories
+mhw_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
+mhw_df$mhwCat[mhw_df$mhwCat > 0] <- 1 #condense MHW cats into two categories (presence or absence)
 head(mhw_df)
 #tail(mhw_df)
 
@@ -108,25 +99,23 @@ comp_df <- cbind(comp_df, lchlCat, mhwCat) #put the category columns at end of d
 head(comp_df)
 nrow(comp_df)
 
-# Save compound df
+# Save unbalanced compound df
 comp_df <- na.omit(comp_df) #remove NA values
 file_name <- paste("comp_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-write.table(file_path,csvfile,sep=",")
+write.table(comp_df,gsub(" ", "", paste("/home/kareande/mhwData/",file_name)),sep=",")
 
 
 ##################################### Add Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
 file_name <- paste("comp_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-comp_df <- read.csv(file_path, sep=",", header=TRUE)
+comp_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
 chl_col <- comp_df[,18] #select chl cat column
 mhw_col <- comp_df[,19] #select mhw cat column
 
 # Create a compound category column of either no events (0), mhw event (1), lchl event (2), compound event (3)
 comp_cat <- vector() #create empty vector to fill with categories
 x <- length(chl_col) #get number of datapoints
-#doParallel::registerDoParallel()
+doParallel::registerDoParallel()
 for(i in 1:x) { #loop to fill out categories
     if (is.na(chl_col[i]) || is.na(mhw_col[i])) { #if value i of chl column OR mhw column is NA,
         comp_cat[i] = 0                           #then the category is 0
@@ -140,10 +129,7 @@ for(i in 1:x) { #loop to fill out categories
         comp_cat[i] = 0 #then the category is 0
     }
         }
-        
-    } #IGNORE; only to prevent indenting for rest of script
-
-#doParallel::stopImplicitCluster()
+doParallel::stopImplicitCluster()
 length(comp_cat) #2718254
 
 # Create a compound category column of either both events (1) or not (0)
@@ -166,27 +152,26 @@ length(comp_cat) #2718254
 comp_df <- cbind(comp_df,comp_cat)
 colnames(comp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp",
                        "qnet","slp","sat","wndSp","sst","sstRoC","lchlCat","mhwCat","compCat")
-    
+head(comp_df)
+
 # Save df with compound event categories
 file_name <- paste("comp_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-write.table(file_path,csvfile,sep=",")
+write.table(comp_df,gsub(" ", "", paste("/home/kareande/mhwData/",file_name)),sep=",")
 
 
-##################################### Balance Compound Df #####################################
+##################################### Balance Compound DF #####################################
 # Get df with mhw and lchl compound events
 file_name <- paste("comp_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-comp_df <- read.csv(file_path, sep=",", header=TRUE) #get df with categorized mhw and lchl
+comp_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
 head(comp_df)
 #tail(comp_df)
-    
+
 # Find the unbalanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
 comp_ev <- nrow(subset(comp_df, compCat=="3")) #number of compound events, 31474
 chl_ev <- nrow(subset(comp_df, compCat=="2")) #lchl only events, 406426
 mhw_ev <- nrow(subset(comp_df, compCat=="1")) #mhw only events, 232268
 no_ev <- nrow(subset(comp_df, compCat=="0")) #no events, 2048086
-tot_ev <- comp_ev+chl_ev+mhw_ev+no_ev #2718254
+tot_ev <- comp_ev+chl_ev+mhw_ev+no_ev #total events, 2718254
 
 comp_ev_per <- (comp_ev/tot_ev)*100 #1.15% compound events (3)
 chl_ev_per <- (chl_ev/tot_ev)*100 #14.9% lchl only (2)
@@ -198,23 +183,23 @@ mhw_ev_per
 no_ev_per
     
 # Calculate how many rows of each category to remove
-comp_x19_df <- subset(comp_df, yr!=2019)
-comp_19_df <- subset(comp_df, yr==2019)
+comp_x19_df <- subset(comp_df, yr!=2019) #no 2019
+comp_19_df <- subset(comp_df, yr==2019) #only 2019
 
-x19_comp_ev <- nrow(subset(comp_x19_df, compCat=="3")) #28594
+x19_comp_ev <- nrow(subset(comp_x19_df, compCat=="3")) #28594, least observations
 x19_chl_ev <- nrow(subset(comp_x19_df, compCat=="2")) #399222
 x19_mhw_ev <- nrow(subset(comp_x19_df, compCat=="1")) #197840
 x19_no_ev <- nrow(subset(comp_x19_df, compCat=="0")) #1997636
 
-w19_comp_ev <- nrow(subset(comp_19_df, compCat=="3")) #2880
+w19_comp_ev <- nrow(subset(comp_19_df, compCat=="3")) #2880, least observations
 w19_chl_ev <- nrow(subset(comp_19_df, compCat=="2")) #7204
 w19_mhw_ev <- nrow(subset(comp_19_df, compCat=="1")) #34428
 w19_no_ev <- nrow(subset(comp_19_df, compCat=="0")) #50450
 
 cat3_tot = x19_comp_ev + w19_comp_ev #31474
-n_2rows_remov = x19_chl_ev + w19_chl_ev - cat3_tot
-n_1rows_remov = x19_mhw_ev + w19_mhw_ev - cat3_tot
-n_0rows_remov = x19_no_ev + w19_no_ev - cat3_tot
+n_2rows_remov = x19_chl_ev + w19_chl_ev - cat3_tot #how many rows to remove from cat2
+n_1rows_remov = x19_mhw_ev + w19_mhw_ev - cat3_tot #how many rows to remove from cat1
+n_0rows_remov = x19_no_ev + w19_no_ev - cat3_tot #how many rows to remove from cat0
     
 # Isolate and remove n rows where year<=2019 and compCat==0
 set.seed(313)
@@ -259,8 +244,7 @@ bal_no_ev_per
 
 # Save balanced compound df
 file_name <- paste("comp_balanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-write.table(comp_bal_df,file_path,sep=",") #save balanced lchl dataset
+write.table(comp_bal_df,gsub(" ", "", paste("/home/kareande/mhwData/",file_name)),sep=",") #save balanced lchl dataset
 
 print("#################################################################
         #################################################################
