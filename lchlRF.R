@@ -1,14 +1,18 @@
-setwd("/auto/home/kareande/mhwData")
+#setwd("/auto/home/kareande/mhwData")
 library("ranger") #randomForest package
 library("vip") #variable importance plots
 library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
+library("doParallel") #parallel processing
 library("ggplot2") #aesthetic plotting
 library("plot.matrix") #confusion matrix
+#install.packages()
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-lchl_df <- read.csv("master_with_contime_df.csv", sep=",", header=TRUE)
+file_name <- paste("master_with_contime_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+lchl_df <- read.csv(file_path, sep=",", header=TRUE) #load file
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -55,8 +59,9 @@ lchl3_df <- cbind(lchl_df,lchl_cat3)
 colnames(lchl3_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df w/ 3 cats
-csvfile <- "chl3_unbalanced_df.csv"
-write.table(lchl3_df,csvfile,sep=",")
+file_name <- paste("chl3_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+write.table(lchl3_df,file_path,sep=",")
 
 # Divide LChl events into 5 cats
 #lchl_cat5 <- vector() #create empty vector to fill with categories
@@ -86,14 +91,16 @@ write.table(lchl3_df,csvfile,sep=",")
 #colnames(lchl5_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df w/ 5 cats
-#csvfile <- "chl5_unbalanced_df.csv"
-#write.table(lchl5_df,csvfile,sep=",")
+#file_name <- paste("chl5_unbalanced_df.csv")
+#file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+#write.table(lchl5_df,file_path,sep=",")
 
 
 ##################################### Balance LChl dataset #####################################
 # Read unbalanced lchl df w/ multiple cats
-lchl_df <- read.csv("chl3_unbalanced_df.csv", sep=",", header=TRUE)
-head(lchl_df)
+file_name <- paste("chl3_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+lchl_df <- read.csv(file_path, sep=",", header=TRUE) #load file
 
 # Find the percentages of each category
 cat0 <- nrow(subset(lchl_df, lchlCat=="0")) #4791689
@@ -136,13 +143,16 @@ bal_cat1_per
 bal_cat2_per
 
 # Save balanced compound event df
-csvfile <- "chl3_balanced_df.csv"
-write.table(lchl_bal_df,csvfile,sep=",")
+file_name <- paste("chl3_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+write.table(lchl_bal_df,file_path,sep=",")
     
 
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
-workingset <- read.csv("chl3_balanced_df.csv", header=TRUE)
+file_name <- paste("chl3_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+workingset <- read.csv(file_path, sep=",", header=TRUE) #load file
 workingset <- workingset[,-9] #remove lchl category
 workingset[workingset$lchlCat == 0,]$lchlCat <- "negligable"
 workingset[workingset$lchlCat == 1,]$lchlCat <- "moderate"
@@ -167,6 +177,7 @@ lchl_test <- lchl_test[sample(nrow(lchl_test), 211118), ]
 lchl_rec <- recipe(lchlCat ~ ., data = lchl_train)
 
 head(lchl_train)
+unique(lchl_train$lchlCat)
 
 # Create model specification using vip package and ranger engine
 tune_spec <- rand_forest(
@@ -196,7 +207,7 @@ doParallel::stopImplicitCluster()
 tune_res
 
 # Visualize results of k-fold analysis training
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -247,7 +258,7 @@ system.time({
 doParallel::stopImplicitCluster()
     
 # Visualize refined results
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -272,10 +283,11 @@ final_rf
 
 # Save final model
 file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
-save(final_rf, file=file_name)
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+save(final_rf, file=file_path)
 
 # Check variable importance for trained model
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
 
 lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
@@ -292,7 +304,8 @@ dev.off()
 ##################################### Test LChl RF Model #####################################
 # Load final model
 file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
-final_rf <- load(file_name)
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+final_rf <- load(file_path)
 
 # Use testing data in final model
 final_wf <- workflow() %>%
@@ -306,7 +319,7 @@ final_res %>%
   collect_metrics()
     
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/confMatLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/confMatLchl",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
@@ -314,4 +327,3 @@ final_res %>%
   autoplot(type = "heatmap")
 
 dev.off()
-
