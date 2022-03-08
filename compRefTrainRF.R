@@ -29,7 +29,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -52,12 +52,13 @@ final_rf <- finalize_model(
 
 final_rf
 
-#save final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData"))
-save(final_rf, file=file_name)
+# Save final model
+file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+save(final_rf, file=file_path) 
 
 # Check variable importance for training data
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
 comp_prep <- prep(comp_rec)
 juiced <- juice(comp_prep)
 
@@ -72,11 +73,11 @@ final_rf %>%
 dev.off()
 
 
-print("##############################################################
-	##############################################################
+print("############################################################
+	############################################################
 
 	Refined training of RF model complete. Results and variable
 	importance saved as .pdf's.
 
-	##############################################################
-	##############################################################")
+	############################################################
+	############################################################")

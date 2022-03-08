@@ -1,6 +1,8 @@
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
-workingset=read.csv("comp_balanced_df.csv", header=TRUE)
+file_name <- paste("comp_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+workingset=read.csv(file_path, header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
 workingset[workingset$compCat == 3,]$compCat="Compound"
 workingset[workingset$compCat == 2,]$compCat="LChl Event"
@@ -52,7 +54,7 @@ end_time - start_time
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -69,11 +71,10 @@ tune_res %>%
 
 dev.off()
 
+print("#############################################################
+	#############################################################
 
-print("################################################################
-	################################################################
-
-	Initial Training of RF model complete. Results saved as .pdf
+	Initial Training of RF model complete. Results saved as PDF.
 	
-	################################################################
-	################################################################")
+	#############################################################
+	#############################################################")

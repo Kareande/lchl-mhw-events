@@ -1,7 +1,8 @@
 ##################################### Test LChl RF Model #####################################
 # Load final model
-file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData"))
-final_rf <- load(file_name)
+file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+final_rf <- load(file_path)
 
 # Use testing data in final model
 final_wf <- workflow() %>%
@@ -13,9 +14,9 @@ final_res <- final_wf %>%
 
 final_res %>%
   collect_metrics()
-
+    
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/confMatLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/confMatLchl",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
@@ -24,10 +25,10 @@ final_res %>%
 
 dev.off()
 
-print("############################################################
-        ############################################################
+print("#############################################################
+        #############################################################
 
-        Testing of RF Model complete. Confusion matrix saved as .pdf.
+        Testing of RF Model complete. Confusion matrix saved as PDF.
 
-        ############################################################
-        ############################################################")
+        #############################################################
+        #############################################################")
