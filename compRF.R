@@ -3,6 +3,7 @@ library("ranger") #randomForest package
 library("vip") #variable importance plots
 library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
+library("doParallel") #parallel processing
 library("ggplot2") #aesthetic plotting
 library("plot.matrix") #confusion matrix
 #install.packages()
@@ -68,10 +69,15 @@ head(lchl_df)
 #tail(lchl_df)
 
 # Get MHW df
-mhw_df <- read.csv("mhw_unbalanced_df.csv", sep=",", header=TRUE) #get df with mhw cats
+file_name <- paste("mhw_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+mhw_df <- read.csv(file_path, sep=",", header=TRUE) #get df with mhw cats
 mhw_df$mhwCat[mhw_df$mhwCat > 0] <- 1 #condense MHW cats into two categories
-head(lchl_df)
+head(mhw_df)
 #tail(mhw_df)
+
+# Correct longitudes for lchl df
+lchl_df$lon <- abs(lchl_df$lon)
 
 # Correct ranges of lat/lon to be equal on both datasets
 lchl_df <- lchl_df[lchl_df$lon<170, ] #length 5138102
@@ -106,7 +112,7 @@ nrow(comp_df)
 comp_df <- na.omit(comp_df) #remove NA values
 file_name <- paste("comp_unbalanced_df.csv")
 file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-write.table(file_path,csvfile,sep=",")
+write.table(comp_bal_df,file_path,sep=",") #save balanced lchl dataset
 
 
 ##################################### Add Compound Cats #####################################
@@ -255,7 +261,7 @@ bal_no_ev_per
 file_name <- paste("comp_balanced_df.csv")
 file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
 write.table(file_path,csvfile,sep=",") #save balanced lchl dataset
-    
+
 
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
