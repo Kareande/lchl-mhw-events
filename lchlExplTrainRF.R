@@ -1,6 +1,8 @@
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
-workingset <- read.csv("chl3_balanced_df.csv", header=TRUE)
+file_name <- paste("chl3_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+workingset <- read.csv(file_path, sep=",", header=TRUE) #load file
 workingset <- workingset[,-9] #remove lchl category
 workingset[workingset$lchlCat == 0,]$lchlCat <- "negligable"
 workingset[workingset$lchlCat == 1,]$lchlCat <- "moderate"
@@ -25,6 +27,7 @@ lchl_test <- lchl_test[sample(nrow(lchl_test), 211118), ]
 lchl_rec <- recipe(lchlCat ~ ., data = lchl_train)
 
 head(lchl_train)
+unique(lchl_train$lchlCat)
 
 # Create model specification using vip package and ranger engine
 tune_spec <- rand_forest(
@@ -54,7 +57,7 @@ doParallel::stopImplicitCluster()
 tune_res
 
 # Visualize results of k-fold analysis training
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -74,10 +77,10 @@ dev.off()
 tune_res
 
 
-print("################################################################
-        ################################################################
+print("#############################################################
+        #############################################################
 
-        Initial Training of RF model complete. Results saved as .pdf
+        Initial Training of RF model complete. Results saved as PDF.
 
-        ################################################################
-        ################################################################")
+        #############################################################
+        #############################################################")

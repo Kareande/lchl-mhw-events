@@ -12,10 +12,10 @@ rf_grid <- grid_regular(
   min_n(range = c(n_min_range, n_max_range)),
   levels = 10
 )
-
+    
 nrow(rf_grid)
 rf_grid
-
+    
 # Train models using refined specs
 #41 min on SILT w/ 16 cores, 12 rows
 doParallel::registerDoParallel(10);
@@ -27,9 +27,9 @@ system.time({
     )
 })
 doParallel::stopImplicitCluster()
-
+    
 # Visualize refined results
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -54,10 +54,11 @@ final_rf
 
 # Save final model
 file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
-save(final_rf, file=file_name)
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+save(final_rf, file=file_path)
 
 # Check variable importance for trained model
-pdf(gsub(" ", "", paste("/auto/home/kareande/lchl-mhw-events/cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
 
 lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
@@ -75,7 +76,7 @@ dev.off()
 print("###################################################################
         ###################################################################
 
-        Refined Train complete. Results and Var Importance saved as .pdf's.
+        Refined Train complete. Results and Var Importance saved as PDF's.
 
         ###################################################################
         ###################################################################")

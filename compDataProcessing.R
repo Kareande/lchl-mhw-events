@@ -1,4 +1,4 @@
-setwd("/auto/home/kareande/mhwData")
+#setwd("/auto/home/kareande/mhwData")
 library("ranger") #randomForest package
 library("vip") #variable importance plots
 library("tidymodels") #tidyverse models
@@ -9,12 +9,14 @@ library("plot.matrix") #confusion matrix
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-lchl_df <- read.csv("master_with_contime_df.csv", sep=",", header=TRUE)
+file_name <- paste("master_with_contime_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+lchl_df <- read.csv(file_path, sep=",", header=TRUE)
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
 # Select chl column
-chl_col <- lchl_df[,9]
+chl_col <- lchl_df[,9] 
 
 # Calculate percentiles
 cat1 <- quantile(chl_col,probs=0.1) #what value is the 10th percentile cutoff, or category 1 minimum value
@@ -52,13 +54,16 @@ lchl_df <- cbind(lchl_df,lchl_cat)
 colnames(lchl_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df
-csvfile <- "chl_unbalanced_df.csv"
-write.table(lchl_df,csvfile,sep=",")
+file_name <- paste("chl_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(lchl_df,file_path,sep=",")
 
 
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get LChl df
-lchl_df <- read.csv("chl_unbalanced_df.csv", sep=",", header=TRUE) #get df with chl cats
+file_name <- paste("chl_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+lchl_df <- read.csv(file_path, sep=",", header=TRUE) #get df with chl cats
 head(lchl_df)
 #tail(lchl_df)
 
@@ -81,7 +86,7 @@ print(paste("mhw_df latitudes goes from",toString(min(mhw_df$lat)),"to",toString
 
 # Extract unique values of lon and lat (veryify same values)
 unique(lchl_df$lon) #27 vals
-unique(mhw_df$lon) #27 vals
+unique(mhw_df$lon) #27 vals 
 unique(lchl_df$lat) #21 vals
 unique(mhw_df$lat) #20 vals, missing 60.0
 
@@ -99,13 +104,16 @@ nrow(comp_df)
 
 # Save compound df
 comp_df <- na.omit(comp_df) #remove NA values
-csvfile <- "comp_unbalanced_df.csv"
-write.table(comp_df,csvfile,sep=",")
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(file_path,csvfile,sep=",")
 
 
 ##################################### Add Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
-comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE)
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+comp_df <- read.csv(file_path, sep=",", header=TRUE)
 chl_col <- comp_df[,18] #select chl cat column
 mhw_col <- comp_df[,19] #select mhw cat column
 
@@ -126,6 +134,8 @@ for(i in 1:x) { #loop to fill out categories
         comp_cat[i] = 0 #then the category is 0
     }
         }
+        
+    } #IGNORE; only to prevent indenting for rest of script
 
 #doParallel::stopImplicitCluster()
 length(comp_cat) #2718254
@@ -150,21 +160,21 @@ length(comp_cat) #2718254
 comp_df <- cbind(comp_df,comp_cat)
 colnames(comp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp",
                        "qnet","slp","sat","wndSp","sst","sstRoC","lchlCat","mhwCat","compCat")
-
+    
 # Save df with compound event categories
-csvfile <- "comp_unbalanced_df.csv"
-write.table(comp_df,csvfile,sep=",")
-
-
-##################################### Calculate Moving Averages #####################################
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(file_path,csvfile,sep=",")
 
 
 ##################################### Balance Compound Df #####################################
 # Get df with mhw and lchl compound events
-comp_df <- read.csv("comp_unbalanced_df.csv", sep=",", header=TRUE) #get df with categorized mhw and lchl
+file_name <- paste("comp_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+comp_df <- read.csv(file_path, sep=",", header=TRUE) #get df with categorized mhw and lchl
 head(comp_df)
 #tail(comp_df)
-
+    
 # Find the unbalanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
 comp_ev <- nrow(subset(comp_df, compCat=="3")) #number of compound events, 31474
 chl_ev <- nrow(subset(comp_df, compCat=="2")) #lchl only events, 406426
@@ -180,7 +190,7 @@ comp_ev_per
 chl_ev_per
 mhw_ev_per
 no_ev_per
-
+    
 # Calculate how many rows of each category to remove
 comp_x19_df <- subset(comp_df, yr!=2019)
 comp_19_df <- subset(comp_df, yr==2019)
@@ -199,7 +209,7 @@ cat3_tot = x19_comp_ev + w19_comp_ev #31474
 n_2rows_remov = x19_chl_ev + w19_chl_ev - cat3_tot
 n_1rows_remov = x19_mhw_ev + w19_mhw_ev - cat3_tot
 n_0rows_remov = x19_no_ev + w19_no_ev - cat3_tot
-
+    
 # Isolate and remove n rows where year<=2019 and compCat==0
 set.seed(313)
 comp_x19_df <- subset(comp_df, yr!=2019) #exclude 2019
@@ -208,7 +218,7 @@ rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
 n_rows_remov <- n_0rows_remov
 sampled.cats <- sample(rows_remov, n_rows_remov) #sample to remove
 comp_bal_df <- comp_df[-sampled.cats, ]
-
+    
 # Isolate and remove n rows where year<=2019 and compCat==2
 comp_x19_df <- subset(comp_bal_df, yr!=2019)
 conditions <- comp_bal_df$compCat==2 #set conditions for removed rows, cat==2
@@ -216,7 +226,7 @@ rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
 n_rows_remov <- n_2rows_remov
 sampled.cats <- sample(rows_remov, n_rows_remov)
 comp_bal_df <- comp_bal_df[-sampled.cats, ]
-
+    
 # Isolate and remove n rows where year<=2019 and compCat==1
 comp_x19_df <- subset(comp_bal_df, yr!=2019)
 conditions <- comp_bal_df$compCat==1 #set conditions for removed rows, cat==1
@@ -242,14 +252,15 @@ bal_mhw_ev_per
 bal_no_ev_per
 
 # Save balanced compound df
-csvfile <- "comp_balanced_df.csv"
-write.table(comp_bal_df,csvfile,sep=",") #save balanced lchl dataset
+file_name <- paste("comp_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+write.table(file_path,csvfile,sep=",") #save balanced lchl dataset
 
-print("################################################################
-        ################################################################
+print("#################################################################
+        #################################################################
 
         Data processing complete. Dataframe ready for RF model training.
 
-        ################################################################
-        ################################################################")
+        #################################################################
+        #################################################################")
 

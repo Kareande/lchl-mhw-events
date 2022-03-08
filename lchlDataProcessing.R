@@ -1,14 +1,18 @@
-setwd("/auto/home/kareande/mhwData")
+#setwd("/auto/home/kareande/mhwData")
 library("ranger") #randomForest package
 library("vip") #variable importance plots
 library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
+library("doParallel") #parallel processing
 library("ggplot2") #aesthetic plotting
 library("plot.matrix") #confusion matrix
+#install.packages()
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-lchl_df <- read.csv("master_with_contime_df.csv", sep=",", header=TRUE)
+file_name <- paste("master_with_contime_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+lchl_df <- read.csv(file_path, sep=",", header=TRUE) #load file
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -42,6 +46,9 @@ for(i in 1:x) { #loop to fill out categories
         lchl_cat3[i] = 0 #then the category is 0
     }
         }
+    
+ 
+    } #IGNORE; only to prevent indenting for rest of script
 
 doParallel::stopImplicitCluster()
 length(lchl_cat3) #5324099
@@ -52,8 +59,9 @@ lchl3_df <- cbind(lchl_df,lchl_cat3)
 colnames(lchl3_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df w/ 3 cats
-csvfile <- "chl3_unbalanced_df.csv"
-write.table(lchl3_df,csvfile,sep=",")
+file_name <- paste("chl3_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+write.table(lchl3_df,file_path,sep=",")
 
 # Divide LChl events into 5 cats
 #lchl_cat5 <- vector() #create empty vector to fill with categories
@@ -83,14 +91,16 @@ write.table(lchl3_df,csvfile,sep=",")
 #colnames(lchl5_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df w/ 5 cats
-#csvfile <- "chl5_unbalanced_df.csv"
-#write.table(lchl5_df,csvfile,sep=",")
+#file_name <- paste("chl5_unbalanced_df.csv")
+#file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+#write.table(lchl5_df,file_path,sep=",")
 
 
 ##################################### Balance LChl dataset #####################################
 # Read unbalanced lchl df w/ multiple cats
-lchl_df <- read.csv("chl3_unbalanced_df.csv", sep=",", header=TRUE)
-head(lchl_df)
+file_name <- paste("chl3_unbalanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+lchl_df <- read.csv(file_path, sep=",", header=TRUE) #load file
 
 # Find the percentages of each category
 cat0 <- nrow(subset(lchl_df, lchlCat=="0")) #4791689
@@ -133,14 +143,15 @@ bal_cat1_per
 bal_cat2_per
 
 # Save balanced compound event df
-csvfile <- "chl3_balanced_df.csv"
-write.table(lchl_bal_df,csvfile,sep=",")
+file_name <- paste("chl3_balanced_df.csv")
+file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
+write.table(lchl_bal_df,file_path,sep=",")
     
 
-print("################################################################
-        ################################################################
+print("#################################################################
+        #################################################################
 
         Data processing complete. Dataframe ready for RF model training.
 
-        ################################################################
-        ################################################################")
+        #################################################################
+        #################################################################")
