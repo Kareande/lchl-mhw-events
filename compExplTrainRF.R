@@ -1,8 +1,15 @@
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
 file_name <- paste("comp_balanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-workingset=read.csv(file_path, header=TRUE)
+workingset <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
 workingset[workingset$compCat == 3,]$compCat="Compound"
 workingset[workingset$compCat == 2,]$compCat="LChl Event"
@@ -49,8 +56,9 @@ tune_res <- tune_grid(
 
 end_time <- Sys.time()
 doParallel::stopImplicitCluster()
-end_time - start_time
+time_diff <- end_time - start_time
 
+time_diff
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
