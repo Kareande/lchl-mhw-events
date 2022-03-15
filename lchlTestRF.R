@@ -1,8 +1,16 @@
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
+#install.packages()
+
 ##################################### Test LChl RF Model #####################################
 # Load final model
 file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-final_rf <- load(file_path)
+final_rf <- load(gsub(" ", "", paste("cmpndData/",file_name)))
 
 # Use testing data in final model
 final_wf <- workflow() %>%

@@ -1,8 +1,15 @@
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
 file_name <- paste("chl3_balanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-workingset <- read.csv(file_path, sep=",", header=TRUE) #load file
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #load file
 workingset <- workingset[,-9] #remove lchl category
 workingset[workingset$lchlCat == 0,]$lchlCat <- "negligable"
 workingset[workingset$lchlCat == 1,]$lchlCat <- "moderate"
@@ -29,10 +36,13 @@ lchl_rec <- recipe(lchlCat ~ ., data = lchl_train)
 head(lchl_train)
 unique(lchl_train$lchlCat)
 
+# Designate number of trees
+n_trees <- 200
+
 # Create model specification using vip package and ranger engine
 tune_spec <- rand_forest(
   mtry = tune(), #number of variables sampled
-  trees = 200, #number of trees
+  trees = n_trees, #number of trees
   min_n = tune() #min number of datapoints for node to split
 ) %>%
   set_mode("classification") %>%

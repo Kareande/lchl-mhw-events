@@ -1,3 +1,12 @@
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("vip") #variable importance plots
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+
 ##################################### Refined Train LChl RF #####################################
 # Refine model specs for re-training based on previous results
 #for 200 trees; mtry 1:9, min_n 3,6,7
@@ -29,7 +38,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf(gsub(" ", "", paste("/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/refTrnComp",n_lag,"Lag",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -50,15 +59,10 @@ final_rf <- finalize_model(
   best_rf
 )
 
-final_rf
-
-# Save final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-save(final_rf, file=file_path) 
+final_rf #mtry = 6, min_n = 2 
 
 # Check variable importance for training data
-pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnComp",n_lag,"Lag",n_trees,"T.pdf")))
 comp_prep <- prep(comp_rec)
 juiced <- juice(comp_prep)
 

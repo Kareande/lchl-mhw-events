@@ -11,7 +11,7 @@ library("plot.matrix") #confusion matrix
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
 file_name <- paste("master_with_contime_df.csv") #name of df
-lchl_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE) #read df path
+lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -54,20 +54,20 @@ colnames(lchl_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil"
 
 # Save df
 file_name <- paste("chl_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 write.table(lchl_df,file_path,sep=",")
 
 
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get LChl df
 file_name <- paste("chl_unbalanced_df.csv")
-lchl_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
+lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(lchl_df)
 #tail(lchl_df)
 
 # Get MHW df
 file_name <- paste("mhw_unbalanced_df.csv")
-mhw_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
+mhw_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 mhw_df$mhwCat[mhw_df$mhwCat > 0] <- 1 #condense MHW cats into two categories (presence or absence)
 head(mhw_df)
 #tail(mhw_df)
@@ -107,13 +107,13 @@ nrow(comp_df)
 # Save unbalanced compound df
 comp_df <- na.omit(comp_df) #remove NA values
 file_name <- paste("comp_unbalanced_df.csv")
-write.table(comp_df,gsub(" ", "", paste("/home/kareande/mhwData/",file_name)),sep=",")
+write.table(comp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Add Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
 file_name <- paste("comp_unbalanced_df.csv")
-comp_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
+comp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 chl_col <- comp_df[,18] #select chl cat column
 mhw_col <- comp_df[,19] #select mhw cat column
 
@@ -161,13 +161,13 @@ head(comp_df)
     
 # Save df with compound event categories
 file_name <- paste("comp_unbalanced_df.csv")
-write.table(comp_df,gsub(" ", "", paste("/home/kareande/mhwData/",file_name)),sep=",")
+write.table(comp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Balance Compound DF #####################################
 # Get df with mhw and lchl compound events
 file_name <- paste("comp_unbalanced_df.csv")
-comp_df <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), sep=",", header=TRUE)
+comp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(comp_df)
 #tail(comp_df)
     
@@ -249,13 +249,13 @@ bal_no_ev_per
 
 # Save balanced compound df
 file_name <- paste("comp_balanced_df.csv")
-write.table(comp_bal_df,gsub(" ", "", paste("/home/kareande/mhwData/",file_name)),sep=",") #save balanced lchl dataset
+write.table(comp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #save balanced lchl dataset
 
 
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
 file_name <- paste("comp_balanced_df.csv")
-workingset <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), header=TRUE)
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
 workingset[workingset$compCat == 3,]$compCat="Compound"
 workingset[workingset$compCat == 2,]$compCat="LChl Event"
@@ -308,7 +308,7 @@ time_diff
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf(gsub(" ", "", paste("/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/preTrainComp",n_lag,"Lag",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -357,7 +357,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf(gsub(" ", "", paste("/cmpndFigs/refTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/refTrnComp",n_lag,"Lag",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -378,15 +378,10 @@ final_rf <- finalize_model(
   best_rf
 )
 
-final_rf
-
-# Save final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
-save(final_rf, file=file_path) 
+final_rf 
 
 # Check variable importance for training data
-pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnComp",n_lag,"Lag",n_trees,"T.pdf")))
 comp_prep <- prep(comp_rec)
 juiced <- juice(comp_prep)
 
@@ -402,10 +397,36 @@ dev.off()
 
 
 ##################################### Test Compound RF Model #####################################
-# Load final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-final_rf <- load(file_path)
+# Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
+set.seed(3939)
+file_name <- paste("comp_balanced_df.csv")
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
+workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
+workingset[workingset$compCat == 3,]$compCat="Compound"
+workingset[workingset$compCat == 2,]$compCat="LChl Event"
+workingset[workingset$compCat == 1,]$compCat="MHW Event"
+workingset[workingset$compCat == 0,]$compCat="No event"
+workingset$compCat = as.factor(workingset$compCat)
+
+comp_split <- initial_split(workingset, strata = compCat)
+comp_train <- training(comp_split)
+comp_test <- testing(comp_split)
+comp_rec <- recipe(compCat ~ ., data = comp_train)
+
+head(comp_test)
+
+# Create final model specification
+n_trees <- 200
+best_mtry <- 6
+best_minn <- 2
+
+final_spec <- rand_forest(
+  mtry = best_mtry, #number of variables sampled
+  trees = n_trees, #number of decision trees
+  min_n = best_minn, #min number of datapoints for node to split
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
 
 # Use testing data in model
 final_wf <- workflow() %>%
@@ -419,7 +440,7 @@ final_res %>%
   collect_metrics()
 
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("/cmpndFigs/confMatCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/confMatCompNoChl",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%

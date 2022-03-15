@@ -1,18 +1,12 @@
-#setwd("/auto/home/kareande/mhwData")
-library("ranger") #randomForest package
-library("vip") #variable importance plots
-library("tidymodels") #tidyverse models
+setwd("/home/kareande/lchl-mhw-events")
 library("foreach") #parallel processing
 library("doParallel") #parallel processing
-library("ggplot2") #aesthetic plotting
-library("plot.matrix") #confusion matrix
 #install.packages()
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-lchl_df <- read.csv(file_path, sep=",", header=TRUE) #load file
+file_name <- paste("master_with_contime_df.csv") #csv df name
+lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #load df
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
 
@@ -46,10 +40,6 @@ for(i in 1:x) { #loop to fill out categories
         lchl_cat3[i] = 0 #then the category is 0
     }
         }
-    
- 
-    } #IGNORE; only to prevent indenting for rest of script
-
 doParallel::stopImplicitCluster()
 length(lchl_cat3) #5324099
 nrow(lchl_df) #5324099
@@ -60,8 +50,7 @@ colnames(lchl3_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil
 
 # Save df w/ 3 cats
 file_name <- paste("chl3_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-write.table(lchl3_df,file_path,sep=",")
+write.table(lchl3_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 # Divide LChl events into 5 cats
 #lchl_cat5 <- vector() #create empty vector to fill with categories
@@ -92,16 +81,15 @@ write.table(lchl3_df,file_path,sep=",")
 
 # Save df w/ 5 cats
 #file_name <- paste("chl5_unbalanced_df.csv")
-#file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-#write.table(lchl5_df,file_path,sep=",")
+#write.table(lchl5_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Balance LChl dataset #####################################
 # Read unbalanced lchl df w/ multiple cats
 file_name <- paste("chl3_unbalanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-lchl_df <- read.csv(file_path, sep=",", header=TRUE) #load file
-
+lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #load file
+head(lchl_df)
+    
 # Find the percentages of each category
 cat0 <- nrow(subset(lchl_df, lchlCat=="0")) #4791689
 cat1 <- nrow(subset(lchl_df, lchlCat=="1")) #266205
@@ -144,8 +132,8 @@ bal_cat2_per
 
 # Save balanced compound event df
 file_name <- paste("chl3_balanced_df.csv")
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-write.table(lchl_bal_df,file_path,sep=",")
+write.table(lchl_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+
     
 
 print("#################################################################

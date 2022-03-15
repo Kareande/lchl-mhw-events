@@ -9,7 +9,7 @@ library("ggplot2") #aesthetic plotting
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
 file_name <- paste("comp_balanced_df.csv")
-workingset <- read.csv(gsub(" ", "", paste("/home/kareande/mhwData/",file_name)), header=TRUE)
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
 workingset[workingset$compCat == 3,]$compCat="Compound"
 workingset[workingset$compCat == 2,]$compCat="LChl Event"
@@ -62,7 +62,7 @@ time_diff
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf(gsub(" ", "", paste("/cmpndFigs/preTrainCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/preTrainComp",n_lag,"Lag",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
