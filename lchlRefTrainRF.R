@@ -1,11 +1,20 @@
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("vip") #variable importance plots
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+
 ##################################### Refined Train LChl RF #####################################
 # Refine model specs for re-training based on previous results
 #for 150 trees; mtry 3:4, min_n 5:10 REDO WITH 150T---------------------------
 #for 200 trees; mtry x:x, min_n x:x
 mtry_min_range <- 3
 mtry_max_range <- 4
-n_min_range <- 5
-n_max_range <- 10
+n_min_range <- 10
+n_max_range <- 13
 
 rf_grid <- grid_regular(
   mtry(range = c(mtry_min_range, mtry_max_range)),
@@ -17,7 +26,6 @@ nrow(rf_grid)
 rf_grid
     
 # Train models using refined specs
-#41 min on SILT w/ 16 cores, 12 rows
 doParallel::registerDoParallel(10);
 system.time({
     regular_res <- tune_grid(
@@ -27,7 +35,7 @@ system.time({
     )
 })
 doParallel::stopImplicitCluster()
-    
+     
 # Visualize refined results
 pdf(gsub(" ", "", paste("/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
 
@@ -54,7 +62,7 @@ final_rf
 
 # Save final model
 file_name <- gsub(" ", "", paste("finalLchl",n_trees,"TRF.RData")))
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name))
+file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 save(final_rf, file=file_path)
 
 # Check variable importance for trained model

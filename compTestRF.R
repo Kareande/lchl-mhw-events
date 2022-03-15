@@ -1,8 +1,43 @@
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
+#install.packages()
+
 ##################################### Test Compound RF Model #####################################
-# Load final model
-file_name <- gsub(" ", "", paste("finalCompNoChl",n_trees,"TRF.RData")))
-file_path <- gsub(" ", "", paste("/home/kareande/mhwData/",file_name)) #csv file
-final_rf <- load(file_path)
+# Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
+set.seed(3939)
+file_name <- paste("comp_balanced_df.csv")
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
+workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
+workingset[workingset$compCat == 3,]$compCat="Compound"
+workingset[workingset$compCat == 2,]$compCat="LChl Event"
+workingset[workingset$compCat == 1,]$compCat="MHW Event"
+workingset[workingset$compCat == 0,]$compCat="No event"
+workingset$compCat = as.factor(workingset$compCat)
+
+comp_split <- initial_split(workingset, strata = compCat)
+comp_train <- training(comp_split)
+comp_test <- testing(comp_split)
+comp_rec <- recipe(compCat ~ ., data = comp_train)
+
+head(comp_test)
+
+# Create final model specification
+n_trees <- 200
+best_mtry <- 6
+best_minn <- 2
+
+final_spec <- rand_forest(
+  mtry = best_mtry, #number of variables sampled
+  trees = n_trees, #number of decision trees
+  min_n = best_minn, #min number of datapoints for node to split
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
 
 # Use testing data in model
 final_wf <- workflow() %>%
@@ -16,7 +51,7 @@ final_res %>%
   collect_metrics()
 
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("/cmpndFigs/confMatCompNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/confMatComp",n_lag,"Lag",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
