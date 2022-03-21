@@ -123,3 +123,17 @@ unique(lchl_unb_df$location) #are they the same?
 unique(mhw_unb_df$location) #are they the same?
 
 
+##################################### Add Lags #####################################
+# Get LChl df
+file_name <- paste("chl_unb_lags_ll_df.csv")
+lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+head(lchl_unb_df)
+
+# Add lags to variable nitrogen
+
+
+
+# Get MHW df
+file_name <- paste("mhw_unb_lags_ll_df.csv")
+mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+head(mhw_unb_df)
