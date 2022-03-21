@@ -10,21 +10,21 @@ library("plot.matrix") #confusion matrix
 ##################################### Test Compound RF Model #####################################
 # Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
 set.seed(3939)
-file_name <- paste("comp_balanced_df.csv")
+file_name <- paste("cmpnd_balanced_df.csv")
 workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
-workingset[workingset$compCat == 3,]$compCat="Compound"
-workingset[workingset$compCat == 2,]$compCat="LChl Event"
-workingset[workingset$compCat == 1,]$compCat="MHW Event"
-workingset[workingset$compCat == 0,]$compCat="No event"
-workingset$compCat = as.factor(workingset$compCat)
+workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
+workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
+workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
+workingset[workingset$cmpCat == 0,]$cmpCat="No event"
+workingset$cmpCat = as.factor(workingset$cmpCat)
 
-comp_split <- initial_split(workingset, strata = compCat)
-comp_train <- training(comp_split)
-comp_test <- testing(comp_split)
-comp_rec <- recipe(compCat ~ ., data = comp_train)
+cmp_split <- initial_split(workingset, strata = cmpCat)
+cmp_train <- training(cmp_split)
+cmp_test <- testing(cmp_split)
+cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
 
-head(comp_test)
+head(cmp_test)
 
 # Create final model specification
 n_trees <- 200
@@ -41,21 +41,21 @@ final_spec <- rand_forest(
 
 # Use testing data in model
 final_wf <- workflow() %>%
-  add_recipe(comp_rec) %>%
+  add_recipe(cmp_rec) %>%
   add_model(final_rf)
 
 final_res <- final_wf %>%
-  last_fit(comp_split)
+  last_fit(cmp_split)
 
 final_res %>%
   collect_metrics()
 
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("cmpndFigs/confMatComp",n_lag,"Lag",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
-  conf_mat(compCat, .pred_class) %>%
+  conf_mat(cmpCat, .pred_class) %>%
   autoplot(type = "heatmap")
 
 dev.off()
