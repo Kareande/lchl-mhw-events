@@ -29,7 +29,7 @@ start_time <- Sys.time()
 
 regular_res <- tune_grid(
   tune_wf,
-  resamples = comp_folds,
+  resamples = cmp_folds,
   grid = rf_grid
 )
 
@@ -38,7 +38,7 @@ doParallel::stopImplicitCluster()
 end_time - start_time
 
 # Visualize refined results
-pdf(gsub(" ", "", paste("cmpndFigs/refTrnComp",n_lag,"Lag",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/refTrnCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -62,15 +62,15 @@ final_rf <- finalize_model(
 final_rf #mtry = 6, min_n = 2 
 
 # Check variable importance for training data
-pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnComp",n_lag,"Lag",n_trees,"T.pdf")))
-comp_prep <- prep(comp_rec)
-juiced <- juice(comp_prep)
+pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
+cmp_prep <- prep(cmp_rec)
+juiced <- juice(cmp_prep)
 
 library(vip)
 final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
-  fit(compCat ~ .,
-    data = juice(comp_prep)
+  fit(cmpCat ~ .,
+    data = juice(cmp_prep)
   ) %>%
   vip(geom = "point")
 

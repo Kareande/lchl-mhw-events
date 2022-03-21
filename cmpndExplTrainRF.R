@@ -8,25 +8,25 @@ library("ggplot2") #aesthetic plotting
 
 ##################################### Exploratory Train LChl RF #####################################
 # Prepare processed Lchl data
-file_name <- paste("comp_balanced_df.csv")
+file_name <- paste("cmpnd_balanced_df.csv")
 workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
-workingset[workingset$compCat == 3,]$compCat="Compound"
-workingset[workingset$compCat == 2,]$compCat="LChl Event"
-workingset[workingset$compCat == 1,]$compCat="MHW Event"
-workingset[workingset$compCat == 0,]$compCat="No event"
-workingset$compCat = as.factor(workingset$compCat)
+workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
+workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
+workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
+workingset[workingset$cmpCat == 0,]$cmpCat="No event"
+workingset$cmpCat = as.factor(workingset$cmpCat)
 
 head(workingset, n=10)
 
 # Split data into training and testing sets
 set.seed(3939)
-comp_split <- initial_split(workingset, strata = compCat)
-comp_train <- training(comp_split)
-comp_test <- testing(comp_split)
-comp_rec <- recipe(compCat ~ ., data = comp_train)
+cmp_split <- initial_split(workingset, strata = cmpCat)
+cmp_train <- training(cmp_split)
+cmp_test <- testing(cmp_split)
+cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
 
-head(comp_train, n=10)
+head(cmp_train, n=10)
 
 # Designate number of trees
 n_trees <- 200
@@ -41,17 +41,17 @@ tune_spec <- rand_forest(
   set_engine("ranger")
 
 tune_wf <- workflow() %>%
-  add_recipe(comp_rec) %>%
+  add_recipe(cmp_rec) %>%
   add_model(tune_spec)
 
 # Training model
 doParallel::registerDoParallel(8)
 start_time <- Sys.time()
-comp_folds <- vfold_cv(comp_train)
+cmp_folds <- vfold_cv(cmp_train)
 
 tune_res <- tune_grid(
   tune_wf,
-  resamples = comp_folds,
+  resamples = cmp_folds,
   grid = 10)
 
 end_time <- Sys.time()
@@ -62,7 +62,7 @@ time_diff
 tune_res
 
 # Visualize results of k-fold analysis; accuracy
-pdf(gsub(" ", "", paste("cmpndFigs/preTrainComp",n_lag,"Lag",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/preTrainCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%

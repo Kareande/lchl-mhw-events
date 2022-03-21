@@ -33,10 +33,10 @@ write.table(lchl_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 rm(lchl_unb_df)
 
-# Load unbalanced compound df
+# Load unbalanced df
 file_name <- paste("mhw_unbalanced_df.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
-#head(comp_unb_df)
+#head(cmp_unb_df)
 
 # Replace day and month (mo) and yr w/ date
 mhw_unb_df$date <- gsub(" ", "", paste(mhw_unb_df$yr, "-", mhw_unb_df$mo, "-",mhw_unb_df$day)) #merge yr, mo, da columns
@@ -94,12 +94,12 @@ lchl_unb_df$location <- gsub(" ", "", paste(lchl_unb_df$lat, "-", lchl_unb_df$lo
 lchl_unb_df <- lchl_unb_df %>% relocate(location, .before = nit) #move location column before nit
 lchl_unb_df <- lchl_unb_df[,-c(1,3,4)] #remove date, lat, lon columns
 
-comp_unb_df <- comp_unb_df[order(comp_unb_df$location),]
-comp_unb_df$days_since <- abs(comp_unb_df$days_since)
+cmp_unb_df <- cmp_unb_df[order(cmp_unb_df$location),]
+cmp_unb_df$days_since <- abs(cmp_unb_df$days_since)
 
 # Save df
 file_name <- paste("chl_unb_lags_ll_df.csv")
-write.table(comp_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+write.table(cmp_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 #Replace lat/lon with location
 mhw_unb_df$location <- gsub(" ", "", paste(mhw_unb_df$lat, "-", mhw_unb_df$lon)) #merge lat and lon
