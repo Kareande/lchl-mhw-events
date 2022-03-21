@@ -5,7 +5,7 @@ library("dplyr") #aesthetic plotting
 #install.packages()
 
 ##################################### Condense dates #####################################
-# Load unbalanced lchl df
+# Load unbalanced lChl df
 file_name <- paste("chl_unbalanced_df.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(lchl_unb_df)
@@ -33,7 +33,7 @@ write.table(lchl_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 rm(lchl_unb_df)
 
-# Load unbalanced df
+# Load unbalanced MHW df
 file_name <- paste("mhw_unbalanced_df.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 #head(cmp_unb_df)
@@ -64,10 +64,7 @@ write.table(mhw_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 # Get LChl df
 file_name <- paste("chl_unb_lags_ds_df.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-
-# Get MHW df
-file_name <- paste("mhw_unb_lags_ds_df.csv")
-mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+head(lchl_unb_df)
 
 # Correct longitudes for lchl df
 lchl_unb_df$lon <- abs(lchl_unb_df$lon)
@@ -75,7 +72,7 @@ lchl_unb_df$lon <- abs(lchl_unb_df$lon)
 # Correct ranges of lat/lon to be equal on both datasets
 lchl_unb_df <- lchl_unb_df[lchl_unb_df$lon<170, ] #length 5138102
 mhw_unb_df <- mhw_unb_df[mhw_unb_df$lon>=102.5, ] #length 5138102
-lchl_unb_df <- lchl_unb_df[lchl_df$lat>10.625, ] #length 5138102
+lchl_unb_df <- lchl_unb_df[lchl_unb_df$lat>10.625, ] #length 5138102
 
 # Find range of lon and lat for each df (verify same range)
 print(paste("lchl_df longitudes goes from",toString(min(lchl_unb_df$lon)),"to",toString(max(lchl_unb_df$lon)))) #102.5 to 167.5
@@ -92,22 +89,31 @@ unique(mhw_unb_df$lat) #20 vals, missing 60.0
 #Replace lat/lon with location
 lchl_unb_df$location <- gsub(" ", "", paste(lchl_unb_df$lat, "-", lchl_unb_df$lon)) #merge lat and lon
 lchl_unb_df <- lchl_unb_df %>% relocate(location, .before = nit) #move location column before nit
-lchl_unb_df <- lchl_unb_df[,-c(1,3,4)] #remove date, lat, lon columns
+lchl_unb_df <- lchl_unb_df[,-c(1,2,3)] #remove date, lat, lon columns
 
-cmp_unb_df <- cmp_unb_df[order(cmp_unb_df$location),]
-cmp_unb_df$days_since <- abs(cmp_unb_df$days_since)
+lchl_unb_df <- lchl_unb_df[order(lchl_unb_df$location),] #reorder dataset by location instead of date
+lchl_unb_df$days_since <- abs(lchl_unb_df$days_since) #make days since a positive number
+lchl_unb_df <- lchl_unb_df %>% relocate(days_since, .before = location) #move days_since to be in front of location
+head(lchl_unb_df)
 
 # Save df
 file_name <- paste("chl_unb_lags_ll_df.csv")
-write.table(cmp_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+write.table(lchl_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+
+# Get MHW df
+file_name <- paste("mhw_unb_lags_ds_df.csv")
+mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+head(mhw_unb_df)
 
 #Replace lat/lon with location
 mhw_unb_df$location <- gsub(" ", "", paste(mhw_unb_df$lat, "-", mhw_unb_df$lon)) #merge lat and lon
-mhw_unb_df <- mhw_unb_df %>% relocate(location, .before = nit) #move location column before nit
-mhw_unb_df <- mhw_unb_df[,-c(1,3,4)] #remove date, lat, lon columns
+mhw_unb_df <- mhw_unb_df %>% relocate(location, .before = qnet) #move location column before nit
+mhw_unb_df <- mhw_unb_df[,-c(1,2,3)] #remove date, lat, lon columns
 
-mhw_unb_df <- mhw_unb_df[order(mhw_unb_df$location),]
-mhw_unb_df$days_since <- abs(mhw_unb_df$days_since)
+mhw_unb_df <- mhw_unb_df[order(mhw_unb_df$location),] #reorder dataset by location instead of date
+mhw_unb_df$days_since <- abs(mhw_unb_df$days_since) #make days since a positive number
+mhw_unb_df <- mhw_unb_df %>% relocate(days_since, .before = location) #move days_since to be in front of location
+head(mhw_unb_df)
 
 # Save df
 file_name <- paste("mhw_unb_lags_ll_df.csv")
