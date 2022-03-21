@@ -58,5 +58,10 @@ Over the last two decades, marine heatwaves (MHWs) have been observed in all maj
     (1)testing accuracy of LChl RF model predictions
     (2)producing confusion matrix to visualize model accuracy
 
+**addLags** contains code for:
+    (1)condensing day, month, and year data into "days since" 1992-1-1 column
+    (2)condensing lat and lon data into one location column
+    (3)adding lags to the compound variable columns
+
 Processed, unbalanced data can be found here: https://www.dropbox.com/sh/3locafvuzq9tylg/AAB5bwDgFJCzlJ-NLKiNwmbTa?dl=0What
 All other datasets (balanced, categorized, compounded) are created within the code.
