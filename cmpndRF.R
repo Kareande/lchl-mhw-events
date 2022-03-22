@@ -423,7 +423,7 @@ best_minn <- 2
 final_spec <- rand_forest(
   mtry = best_mtry, #number of variables sampled
   trees = n_trees, #number of decision trees
-  min_n = best_minn, #min number of datapoints for node to split
+  min_n = best_minn #min number of datapoints for node to split
 ) %>%
   set_mode("classification") %>%
   set_engine("ranger")

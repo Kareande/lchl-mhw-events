@@ -67,7 +67,7 @@ doParallel::stopImplicitCluster()
 tune_res
 
 # Visualize results of k-fold analysis training
-pdf(gsub(" ", "", paste("/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
