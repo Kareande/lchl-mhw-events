@@ -2,6 +2,7 @@ setwd("/home/kareande/lchl-mhw-events")
 library("foreach") #parallel processing
 library("doParallel") #parallel processing
 library("dplyr") #lags
+library("lubridate") #calculating day of year
 #install.packages()
 
 ##################################### Define LChl categories #####################################
@@ -57,13 +58,13 @@ write.table(lchl_df,file_path,sep=",")
 # Load unbalanced lChl df
 file_name <- paste("chl_unbalanced_df.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
-head(lchl_unb_df)
+#head(lchl_unb_df)
 
 # Load unbalanced MHW df
 file_name <- paste("mhw_unbalanced_df.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 mhw_unb_df$mhwCat[mhw_unb_df$mhwCat > 0] <- 1 #condense MHW cats into two categories (presence or absence)
-head(mhw_unb_df)
+#head(mhw_unb_df)
 
 # Create date columns
 lchl_unb_df$date <- gsub(" ", "", paste(lchl_unb_df$yr, "-", lchl_unb_df$mo, "-",lchl_unb_df$day)) #merge yr, mo, da columns
@@ -78,10 +79,10 @@ date_1<-as.Date(lchl_unb_df$date[1])
 doParallel::registerDoParallel(32)
 for(i in 1:nrow(lchl_unb_df)) {
     date_2 <- as.Date(lchl_unb_df$date[i])
-    lchl_unb_df$days_since[i] <- difftime(date_1 ,date_2 , units = c("days"))
+    lchl_unb_df$ds[i] <- difftime(date_1 ,date_2 , units = c("days"))
     }
 doParallel::stopImplicitCluster()
-lchl_unb_df <- lchl_unb_df %>% relocate(days_since, .before = lon) #move days_since column before lon
+lchl_unb_df <- lchl_unb_df %>% relocate(ds, .before = lon) #move days since column before lon
 head(lchl_unb_df)
 
 # Calculate days since for MHW DF
@@ -89,31 +90,31 @@ head(lchl_unb_df)
 doParallel::registerDoParallel(32)
 for(i in 1:nrow(mhw_unb_df)) {
     date_2 <- as.Date(mhw_unb_df$date[i])
-    mhw_unb_df$days_since[i] <- difftime(date_1 ,date_2 , units = c("days"))
+    mhw_unb_df$ds[i] <- difftime(date_1 ,date_2 , units = c("days"))
     }
 doParallel::stopImplicitCluster()
-mhw_unb_df <- mhw_unb_df %>% relocate(days_since, .before = lon) #move days_since column before lon
+mhw_unb_df <- mhw_unb_df %>% relocate(ds, .before = lon) #move days since column before lon
 head(mhw_unb_df)
 
-# Calculate doy for LChl DF----------------continue from here tmux7~~~~~~~~~~~~~***********!!!!!!!!!!!!!
-rename(lchl_unb_df, doy=date)
+# Calculate doy for LChl DF
+names(lchl_unb_df)[names(lchl_unb_df) == "date"] <- "doy"
 doParallel::registerDoParallel(16)
 for(i in 1:nrow(lchl_unb_df)) {
-    lchl_unb_df$doy[i] <- date.to.DOY(lchl_unb_df$doy[i], format = "yyyy/mm/dd")
+    lchl_unb_df$doy[i] <- yday(lchl_unb_df$doy[i])
     }
 doParallel::stopImplicitCluster()
 head(lchl_unb_df)
 
 # Calculate doy for MHW DF
-rename(mhw_unb_df, doy=date)
+names(mhw_unb_df)[names(mhw_unb_df) == "date"] <- "doy"
 doParallel::registerDoParallel(16)
 for(i in 1:nrow(mhw_unb_df)) {
-    mhw_unb_df$doy[i] <- date.to.DOY(mhw_unb_df$doy[i], format = "yyyy/mm/dd")
+    mhw_unb_df$doy[i] <- yday(mhw_unb_df$doy[i])
     }
 doParallel::stopImplicitCluster()
 head(mhw_unb_df)
 
-# Correct ranges of lat/lon to be equal on both datasets
+# Correct ranges of lat/lon to be equal on both datasets----------------continue from here tmux7~~~~~~~~~~~~~***********!!!!!!!!!!!!!
 lchl_unb_df$lon <- abs(lchl_unb_df$lon) #make lchl lons positive
 lchl_unb_df <- lchl_unb_df[lchl_unb_df$lon<170, ] #length 5138102
 mhw_unb_df <- mhw_unb_df[mhw_unb_df$lon>=102.5, ] #length 5138102
@@ -252,21 +253,21 @@ write.table(mhw_unb_2lag180_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=
 # Get LChl df w/ lags
 file_name <- paste("lchl_unb_2lags180_df.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-lchl_unb_df <- lchl_unb_df[,-c()] #remove days_since and location
+lchl_unb_df <- lchl_unb_df[,-c(,)] #remove days_since and location: ADD COLUMN LOCATIONS
 head(lchl_unb_df)
-nrow(lchl_unb_df)
+nrow(lchl_unb_df) #ADD SIZE
 
 # Get MHW df w/ lags
 file_name <- paste("mhw_unb_2lags180_df.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-mhw_unb_df <- mhw_unb_df[,-c()] #remove days_since and location
+mhw_unb_df <- mhw_unb_df[,-c(X,X)] #remove days_since and location: ADD COLUMN LOCATIONS
 head(mhw_unb_df)
-nrow(mhw_unb_df)
+nrow(mhw_unb_df) #ADD SIZE
 
-# Combine dfs into compound df (day, mo, yr, doy???, lat, lon, location)
-cmp_df <- merge(lchl_unb_df, mhw_unb_df, c("day", "mo", "yr","doy", "lon", "lat"))
+# Combine dfs into compound df
+cmp_df <- merge(lchl_unb_df, mhw_unb_df, c("day", "mo", "yr","doy", "lon", "lat")) #merge based on these columns
 head(cmp_df)
-nrow(cmp_df)
+nrow(cmp_df) #ADD SIZE
 
 # Save unbalanced compound df
 cmp_df <- na.omit(cmp_df) #remove NA values
@@ -274,4 +275,137 @@ file_name <- paste("cmpnd_unb_2lags180_df.csv")
 write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
-##################################### Balance Cmpnd DF #####################################
+##################################### Add Compound Cats #####################################
+# Get lagged, unbalanced compound df
+file_name <- paste("cmpnd_unb_2lags180_df.csv")
+cmpnd_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+head(cmpnd_unb_df)
+
+# Decide which lag to continue with
+cols_cmp = c(colnames(cmpnd_unb_df)) #make list of mhw col_names
+#cmp_df <- select(.data, contains(cols_cmp[,1:4, 6, 10, 14, 18, 22, 26, 30])) #columns to use for no lags
+cmp_df <- select(.data, contains(cols_cmp[,1:4, 6, 10, 14, 18, 22, 26, 30])) #columns to use for 2d lags
+#cmp_df <- select(.data, contains(cols_cmp[,1:4, 6, 10, 14, 18, 22, 26, 30])) #columns to use for 7d lags
+#cmp_df <- select(.data, contains(cols_cmp[,1:4, 6, 10, 14, 18, 22, 26, 30])) #columns to use for 14d lags
+#cmp_df <- select(.data, contains(cols_cmp[,1:4, 6, 10, 14, 18, 22, 26, 30])) #columns to use for 180 lags
+chl_col <- cmpnd_unb_df$lchlCat #select chl cat column
+mhw_col <- cmpnd_unb_df$mhwCats #select mhw cat column
+
+# Create a compound category column of either no events (0), mhw event (1), lchl event (2), compound event (3)
+cmp_cat <- vector() #create empty vector to fill with categories
+x <- nrow(cmp_df) #get number of datapoints
+doParallel::registerDoParallel()
+for(i in 1:x) { #loop to fill out categories
+    if (is.na(chl_col[i]) || is.na(mhw_col[i])) { #if value i of chl column OR mhw column is NA,
+        cmp_cat[i] = 0                           #then the category is 0
+    } else if(chl_col[i]==1 && mhw_col[i]==1) { #if chl cat AND mhw cat is 1,
+        cmp_cat[i] = 3                         #then the category is 3
+    } else if(mhw_col[i]==1) { #if only the mhw cat is 1,
+        cmp_cat[i] = 1        #then the category is 1
+    } else if(chl_col[i]==1) { #if only the chl cat is 1,
+        cmp_cat[i] = 2        #then the category is 2
+    } else {            #if the chl or mhw cat is not 1,
+        cmp_cat[i] = 0 #then the category is 0
+    }
+        }
+doParallel::stopImplicitCluster()
+length(cmp_cat) #2718254
+
+# Add compound cats to df
+cmp_df <- cbind(cmp_df,cmp_cat)
+colnames(cmp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp",
+                           "qnet","slp","sat","wndSp","sst","sstRoC","lchlCat","mhwCat","cmpCat") #CHANGE VARS TO MATCH DF******
+head(cmp_df)
+
+# Save df with compound event categories
+file_name <- paste("cmpnd_cats_unb_df.csv")
+write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+
+
+##################################### Balance Compound DF #####################################
+# Get df with mhw and lchl compound events
+file_name <- paste("cmpnd_cats_unb_df.csv")
+cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
+head(cmp_df)
+
+# Find the unbalanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
+cmp_ev <- nrow(subset(cmp_df, cmpCat=="3")) #number of compound events, 31474
+chl_ev <- nrow(subset(cmp_df, cmpCat=="2")) #lchl only events, 406426
+mhw_ev <- nrow(subset(cmp_df, cmpCat=="1")) #mhw only events, 232268
+no_ev <- nrow(subset(cmp_df, cmpCat=="0")) #no events, 2048086
+tot_ev <- cmp_ev+chl_ev+mhw_ev+no_ev #total events, 2718254
+
+cmp_ev_per <- (cmp_ev/tot_ev)*100 #1.15% compound events (3)
+chl_ev_per <- (chl_ev/tot_ev)*100 #14.9% lchl only (2)
+mhw_ev_per <- (mhw_ev/tot_ev)*100 #8.54% mhw only (1)
+no_ev_per <- (no_ev/tot_ev)*100 #75.34% no event (0)
+cmp_ev_per
+chl_ev_per
+mhw_ev_per
+no_ev_per
+    
+# Calculate how many rows of each category to remove
+cmp_x19_df <- subset(cmp_df, yr!=2019) #no 2019
+cmp_19_df <- subset(cmp_df, yr==2019) #only 2019
+
+x19_cmp_ev <- nrow(subset(cmp_x19_df, cmpCat=="3")) #28594, least observations
+x19_chl_ev <- nrow(subset(cmp_x19_df, cmpCat=="2")) #399222
+x19_mhw_ev <- nrow(subset(cmp_x19_df, cmpCat=="1")) #197840
+x19_no_ev <- nrow(subset(cmp_x19_df, cmpCat=="0")) #1997636
+
+w19_cmp_ev <- nrow(subset(cmp_19_df, cmpCat=="3")) #2880, least observations
+w19_chl_ev <- nrow(subset(cmp_19_df, cmpCat=="2")) #7204
+w19_mhw_ev <- nrow(subset(cmp_19_df, cmpCat=="1")) #34428
+w19_no_ev <- nrow(subset(cmp_19_df, cmpCat=="0")) #50450
+
+cat3_tot = x19_cmp_ev + w19_cmp_ev #31474
+n_2rows_remov = x19_chl_ev + w19_chl_ev - cat3_tot #how many rows to remove from cat2
+n_1rows_remov = x19_mhw_ev + w19_mhw_ev - cat3_tot #how many rows to remove from cat1
+n_0rows_remov = x19_no_ev + w19_no_ev - cat3_tot #how many rows to remove from cat0
+    
+# Isolate and remove n rows where year<=2019 and cmpCat==0
+set.seed(313)
+cmp_x19_df <- subset(cmp_df, yr!=2019) #exclude 2019
+conditions <- cmp_df$cmpCat==0 #set conditions for removed rows, cat==0
+rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
+n_rows_remov <- n_0rows_remov
+sampled.cats <- sample(rows_remov, n_rows_remov) #sample to remove
+cmp_bal_df <- cmp_df[-sampled.cats, ]
+    
+# Isolate and remove n rows where year<=2019 and cmpCat==2
+cmp_x19_df <- subset(cmp_bal_df, yr!=2019)
+conditions <- cmp_bal_df$cmpCat==2 #set conditions for removed rows, cat==2
+rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
+n_rows_remov <- n_2rows_remov
+sampled.cats <- sample(rows_remov, n_rows_remov)
+cmp_bal_df <- cmp_bal_df[-sampled.cats, ]
+    
+# Isolate and remove n rows where year<=2019 and cmpCat==1
+cmp_x19_df <- subset(cmp_bal_df, yr!=2019)
+conditions <- cmp_bal_df$cmpCat==1 #set conditions for removed rows, cat==1
+rows_remov <- which(conditions==TRUE) #only remove rows where conditions true
+n_rows_remov <- n_1rows_remov
+sampled.cats <- sample(rows_remov, n_rows_remov)
+cmp_bal_df <- cmp_bal_df[-sampled.cats, ]
+
+# Find the balanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
+bal_cmp_ev <- nrow(subset(cmp_bal_df, cmpCat=="3")) #number of compound events, 31474
+bal_chl_ev <- nrow(subset(cmp_bal_df, cmpCat=="2")) #lchl only events, 31474
+bal_mhw_ev <- nrow(subset(cmp_bal_df, cmpCat=="1")) #mhw only events, 31474
+bal_no_ev <- nrow(subset(cmp_bal_df, cmpCat=="0")) #no events, 31474
+bal_tot_ev <- bal_cmp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #125896 total observations
+
+bal_cmp_ev_per <- (bal_cmp_ev/bal_tot_ev)*100 #25% compound events (3)
+bal_chl_ev_per <- (bal_chl_ev/bal_tot_ev)*100 #25% lchl only (2)
+bal_mhw_ev_per <- (bal_mhw_ev/bal_tot_ev)*100 #25% mhw only (1)
+bal_no_ev_per <- (bal_no_ev/bal_tot_ev)*100 #25% no event (0)
+bal_cmp_ev_per
+bal_chl_ev_per
+bal_mhw_ev_per
+bal_no_ev_per
+
+# Save balanced compound df
+file_name <- paste("cmpnd_balanced_df.csv")
+write.table(cmp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #save balanced lchl dataset
+
+
