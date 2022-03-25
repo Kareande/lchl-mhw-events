@@ -7,7 +7,7 @@ library("lubridate") #calculating day of year
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv") #name of df
+file_name <- paste("chl_convert_df.csv") #name of df
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
@@ -96,7 +96,7 @@ doParallel::stopImplicitCluster()
 mhw_unb_df <- mhw_unb_df %>% relocate(ds, .before = lon) #move days since column before lon
 head(mhw_unb_df)
 
-# Calculate doy for LChl DF
+# Calculate doy from date for LChl DF
 names(lchl_unb_df)[names(lchl_unb_df) == "date"] <- "doy"
 doParallel::registerDoParallel(16)
 for(i in 1:nrow(lchl_unb_df)) {
@@ -105,7 +105,7 @@ for(i in 1:nrow(lchl_unb_df)) {
 doParallel::stopImplicitCluster()
 head(lchl_unb_df)
 
-# Calculate doy for MHW DF
+# Calculate doy from date for MHW DF
 names(mhw_unb_df)[names(mhw_unb_df) == "date"] <- "doy"
 doParallel::registerDoParallel(16)
 for(i in 1:nrow(mhw_unb_df)) {
@@ -114,7 +114,7 @@ for(i in 1:nrow(mhw_unb_df)) {
 doParallel::stopImplicitCluster()
 head(mhw_unb_df)
 
-# Correct ranges of lat/lon to be equal on both datasets----------------continue from here tmux7~~~~~~~~~~~~~***********!!!!!!!!!!!!!
+# Make lat/lon ranges equal on both datasets
 lchl_unb_df$lon <- abs(lchl_unb_df$lon) #make lchl lons positive
 lchl_unb_df <- lchl_unb_df[lchl_unb_df$lon<170, ] #length 5138102
 mhw_unb_df <- mhw_unb_df[mhw_unb_df$lon>=102.5, ] #length 5138102
@@ -153,126 +153,87 @@ file_name <- paste("mhw_unb_lagsprep_df.csv")
 write.table(mhw_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
-##################################### Add LChl Lags #####################################
+##################################### Add Leads #####################################
 # Get LChl df
 file_name <- paste("chl_unb_lagsprep_df.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(lchl_unb_df)
 
-# Add 2, 7, 14, and 180 days of lags using dplyr
+# Create LChl DF's with 2, 7, 14, and 180 days of lags
 vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+vars_lchl = c(colnames(lchl_unb_df))[-c(1:8,15)] #var names
 doParallel::registerDoParallel(32)
-lchl_unb_2lag180_df <- lchl_unb_df #create new df for lags
-for(i in 1:length(vars_lag)) {
-    a <- gsub(" ", "", paste("nit",vars_lag[i])) #create dynamic nit.lag name
-    b <- gsub(" ", "", paste("oxy",vars_lag[i])) #create dynamic oxy.lag name
-    c <- gsub(" ", "", paste("pho",vars_lag[i])) #create dynamic pho.lag name
-    d <- gsub(" ", "", paste("chl",vars_lag[i])) #create dynamic chl.lag name
-    e <- gsub(" ", "", paste("sil",vars_lag[i])) #create dynamic sil.lag name
-    f <- gsub(" ", "", paste("npp",vars_lag[i])) #create dynamic npp.lag name
-    g <- gsub(" ", "", paste("lchlCat",vars_lag[i])) #create dynamic lchlCat.lag name
-    lchl_unb_2lag180_df <- lchl_unb_2lag180_df %>%
+for(i in 1:length(vars_lag)) { #for each lag value...
+    dyn_col <- c()
+    for(v in 1:length(vars_lchl)) {
+        dyn_col[v] <- gsub(" ", "", paste(vars_lchl[v],vars_lag[i])) #create dynamic lagged col name
+        }
+    lchl_unb_lag_df <- lchl_unb_df %>% #create lagged df
         group_by(location) %>% #limit shifting of rows to be by date
-        dplyr::mutate(!!a := dplyr::lag(nit, n = vars_lag[i], default = NA)) %>% #add lag to nit
-        dplyr::mutate(!!b := dplyr::lag(oxy, n = vars_lag[i], default = NA)) %>% #add lag to oxy
-        dplyr::mutate(!!c := dplyr::lag(pho, n = vars_lag[i], default = NA)) %>% #add lag to pho
-        dplyr::mutate(!!d := dplyr::lag(chl, n = vars_lag[i], default = NA)) %>% #add lag to chl
-        dplyr::mutate(!!e := dplyr::lag(sil, n = vars_lag[i], default = NA)) %>% #add lag to sil
-        dplyr::mutate(!!f := dplyr::lag(npp, n = vars_lag[i], default = NA)) %>% #add lag to npp
-        dplyr::mutate(!!g := dplyr::lag(lchlCat, n = vars_lag[i], default = NA)) %>% #to lchlCat 
+        dplyr::mutate(!!dyn_col[1] := dplyr::lead(nit, n = vars_lag[i], default = NA)) %>% #add lag to nit-- CANNOT LOOP
+        dplyr::mutate(!!dyn_col[2] := dplyr::lead(oxy, n = vars_lag[i], default = NA)) %>% #add lag to oxy-- B/C 1ST ARG
+        dplyr::mutate(!!dyn_col[3] := dplyr::lead(pho, n = vars_lag[i], default = NA)) %>% #add lag to pho-- IN LAG()
+        dplyr::mutate(!!dyn_col[4] := dplyr::lead(chl, n = vars_lag[i], default = NA)) %>% #add lag to chl-- CANT BE
+        dplyr::mutate(!!dyn_col[5] := dplyr::lead(sil, n = vars_lag[i], default = NA)) %>% #add lag to sil-- CHANGED TO
+        dplyr::mutate(!!dyn_col[6] := dplyr::lead(npp, n = vars_lag[i], default = NA)) %>% #add lag to npp-- vars_lchl[v]
         as.data.frame()
+    for(v in 1:length(vars_lchl)) {
+        lchl_unb_lag_df <- lchl_unb_lag_df %>% relocate(gsub(" ", "", paste(vars_lchl[v],vars_lag[i])), .after = vars_lchl[v])
+        }
+    df_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag_df")) #create dyamic lag df name
+    write.table(lchl_unb_lag_df,gsub(" ", "", paste("cmpndData/",df_name)),sep=",") #save df w/ each lag value
     }
 doParallel::stopImplicitCluster()
+head(lchl_unb_lag_df)
+rm(lchl_unb_lag_df, vars_lchl, lchl_unb_df)
 
-# Rearrange LChl DF
-vars_lchl = c(colnames(lchl_unb_df)) #make list of lchl col_names
-vars_lchl = vars_lchl[-c(1,2)] #remove days_since and location
-doParallel::registerDoParallel(16)
-for(i in 1:6) {
-    lchl_unb_2lag180_df <- lchl_unb_2lag180_df %>% relocate(gsub(" ", "", paste(vars_lchl[i],vars_lag[1])), .before = vars_lchl[i+1])
-    lchl_unb_2lag180_df <- lchl_unb_2lag180_df %>% relocate((gsub(" ", "", paste(vars_lchl[i],vars_lag[2]))), .before = vars_lchl[i+1])
-    lchl_unb_2lag180_df <- lchl_unb_2lag180_df %>% relocate((gsub(" ", "", paste(vars_lchl[i],vars_lag[3]))), .before = vars_lchl[i+1])
-    lchl_unb_2lag180_df <- lchl_unb_2lag180_df %>% relocate((gsub(" ", "", paste(vars_lchl[i],vars_lag[4]))),.before = vars_lchl[i+1])
-    }
-doParallel::stopImplicitCluster()
-
-# Save LChl df
-file_name <- paste("lchl_unb_2lags180_df.csv")
-write.table(lchl_unb_2lag180_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-
-
-##################################### Add MHW Lags #####################################
 # Get MHW df
 file_name <- paste("mhw_unb_lagsprep_df.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(mhw_unb_df)
 
-# Add 2, 7, 14, and 180 days of lags using dplyr
+# Create MHW DF's with 2, 7, 14, and 180 days of lags
 vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+vars_mhw = c(colnames(mhw_unb_df))[-c(1:8,15)] #var names
 doParallel::registerDoParallel(32)
-mhw_unb_2lag180_df <- mhw_unb_df #create new df for lags
-for(i in 1:length(vars_lag)) {
-    a <- gsub(" ", "", paste("qnet",vars_lag[i])) #create dynamic qnet.lag names
-    b <- gsub(" ", "", paste("slp",vars_lag[i])) #create dynamic slp.lag names
-    c <- gsub(" ", "", paste("sat",vars_lag[i])) #create dynamic sat.lag names
-    d <- gsub(" ", "", paste("wndsp",vars_lag[i])) #create dynamic wndsp.lag names
-    e <- gsub(" ", "", paste("sst",vars_lag[i])) #create dynamic sst.lag names
-    f <- gsub(" ", "", paste("sstRoC",vars_lag[i])) #create dynamic sstRoC.lag names
-    g <- gsub(" ", "", paste("mhwCat",vars_lag[i])) #create dynamic mhwCat.lag names
-    mhw_unb_2lag180_df <- mhw_unb_2lag180_df %>%
+for(i in 1:length(vars_lag)) { #for each lag value...
+    dyn_col <- c()
+    for(v in 1:length(vars_mhw)) {
+        dyn_col[v] <- gsub(" ", "", paste(vars_mhw[v],vars_lag[i])) #create dynamic lagged col name
+        }
+    mhw_unb_lag_df <- mhw_unb_df %>% #create lagged df
         group_by(location) %>% #limit shifting of rows to be by date
-        dplyr::mutate(!!a := dplyr::lag(qnet, n = vars_lag[i], default = NA)) %>% #add lag to qnet
-        dplyr::mutate(!!b := dplyr::lag(slp, n = vars_lag[i], default = NA)) %>% #add lag to slp
-        dplyr::mutate(!!c := dplyr::lag(sat, n = vars_lag[i], default = NA)) %>% #add lag to sat
-        dplyr::mutate(!!d := dplyr::lag(wndsp, n = vars_lag[i], default = NA)) %>% #add lag to wndsp
-        dplyr::mutate(!!e := dplyr::lag(sst, n = vars_lag[i], default = NA)) %>% #add lag to sst
-        dplyr::mutate(!!f := dplyr::lag(sstRoC, n = vars_lag[i], default = NA)) %>% #add lag to sstRoC
-        dplyr::mutate(!!g := dplyr::lag(mhwCat, n = vars_lag[i], default = NA)) %>% #to mhwCat 
+        dplyr::mutate(!!dyn_col[1] := dplyr::lead(qnet, n = vars_lag[i], default = NA)) %>%   #add var1 lag-- CANNOT LOOP
+        dplyr::mutate(!!dyn_col[2] := dplyr::lead(slp, n = vars_lag[i], default = NA)) %>%    #add var2 lag-- B/C 1ST ARG
+        dplyr::mutate(!!dyn_col[3] := dplyr::lead(sat, n = vars_lag[i], default = NA)) %>%    #add var3 lag-- IN LAG()
+        dplyr::mutate(!!dyn_col[4] := dplyr::lead(wndsp, n = vars_lag[i], default = NA)) %>%  #add var4 lag-- CANT BE
+        dplyr::mutate(!!dyn_col[5] := dplyr::lead(sst, n = vars_lag[i], default = NA)) %>%    #add var5 lag-- CHANGED TO
+        dplyr::mutate(!!dyn_col[6] := dplyr::lead(sstRoC, n = vars_lag[i], default = NA)) %>% #add var6 lag-- vars_mhw[v]
         as.data.frame()
+    for(v in 1:length(vars_mhw)) {
+        mhw_unb_lag_df <- mhw_unb_lag_df %>% relocate(gsub(" ", "", paste(vars_mhw[v],vars_lag[i])), .after = vars_mhw[v])
+        }
+    df_name <- gsub(" ", "", paste("mhw_unb_",vars_lag[i],"lag_df")) #create dyamic lag df name
+    write.table(mhw_unb_lag_df,gsub(" ", "", paste("cmpndData/",df_name)),sep=",") #save df w/ each lag value
     }
 doParallel::stopImplicitCluster()
+head(mhw_unb_lag_df)
 
-# Rearrange MHW DF
-vars_mhw = c(colnames(mhw_unb_df)) #make list of mhw col_names
-vars_mhw = vars_mhw[-c(1,2)] #remove days_since and location
-doParallel::registerDoParallel(16)
-for(i in 1:6) {
-    mhw_unb_2lag180_df <- mhw_unb_2lag180_df %>% relocate(gsub(" ", "", paste(vars_mhw[i],vars_lag[1])), .before = vars_mhw[i+1])
-    mhw_unb_2lag180_df <- mhw_unb_2lag180_df %>% relocate((gsub(" ", "", paste(vars_mhw[i],vars_lag[2]))), .before = vars_mhw[i+1])
-    mhw_unb_2lag180_df <- mhw_unb_2lag180_df %>% relocate((gsub(" ", "", paste(vars_mhw[i],vars_lag[3]))), .before = vars_mhw[i+1])
-    mhw_unb_2lag180_df <- mhw_unb_2lag180_df %>% relocate((gsub(" ", "", paste(vars_mhw[i],vars_lag[4]))), .before = vars_mhw[i+1])
+# Combine DF's
+vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+for(i in 1:length(vars_lag)){
+    file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag_df")) #create dyamic df name
+    lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+    lchl_unb_df <- lchl_unb_df[,-c(5,8)] #remove days since and location
+    file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag_df")) #create dyamic df name
+    mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+    mhw_unb_df <- mhw_unb_df[,-c(5,8)] #remove days since and location
+    cmp_df <- merge(lchl_unb_df, mhw_unb_df, c("day", "mo", "yr", "doy", "lon", "lat")) #merge based on these columns
+    file_name <- gsub(" ", "", paste("cmpnd_unb_",vars_lag[i],"lag_df")) #create dyamic df name
+    write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+    head(cmp_df)
     }
-doParallel::stopImplicitCluster()
-
-# Save MHW df
-file_name <- paste("mhw_unb_2lags180_df.csv")
-write.table(mhw_unb_2lag180_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-
-
-##################################### Combine DF's #####################################
-# Get LChl df w/ lags
-file_name <- paste("lchl_unb_2lags180_df.csv")
-lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-lchl_unb_df <- lchl_unb_df[,-c(,)] #remove days_since and location: ADD COLUMN LOCATIONS
-head(lchl_unb_df)
-nrow(lchl_unb_df) #ADD SIZE
-
-# Get MHW df w/ lags
-file_name <- paste("mhw_unb_2lags180_df.csv")
-mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-mhw_unb_df <- mhw_unb_df[,-c(X,X)] #remove days_since and location: ADD COLUMN LOCATIONS
-head(mhw_unb_df)
-nrow(mhw_unb_df) #ADD SIZE
-
-# Combine dfs into compound df
-cmp_df <- merge(lchl_unb_df, mhw_unb_df, c("day", "mo", "yr","doy", "lon", "lat")) #merge based on these columns
-head(cmp_df)
-nrow(cmp_df) #ADD SIZE
-
-# Save unbalanced compound df
-cmp_df <- na.omit(cmp_df) #remove NA values
-file_name <- paste("cmpnd_unb_2lags180_df.csv")
-write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
+rm(lchl_unb_df,mhw_unb_df,cmp_df)
 
 
 ##################################### Add Compound Cats #####################################
