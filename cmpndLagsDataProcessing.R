@@ -7,7 +7,7 @@ library("lubridate") #calculating day of year
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("chl_convert_df.csv") #name of df
+file_name <- paste("chl_unprocessed.csv") #name of df
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
@@ -50,18 +50,18 @@ lchl_df <- cbind(lchl_df,lchl_cat)
 colnames(lchl_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df
-file_name <- paste("chl_unbalanced_df.csv")
+file_name <- paste("chl_unbalanced.csv")
 file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 write.table(lchl_df,file_path,sep=",")
 
 ################################ Condense date and location data ################################
 # Load unbalanced lChl df
-file_name <- paste("chl_unbalanced_df.csv")
+file_name <- paste("chl_unbalanced.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 #head(lchl_unb_df)
 
 # Load unbalanced MHW df
-file_name <- paste("mhw_unbalanced_df.csv")
+file_name <- paste("mhw_unbalanced.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 mhw_unb_df$mhwCat[mhw_unb_df$mhwCat > 0] <- 1 #condense MHW cats into two categories (presence or absence)
 #head(mhw_unb_df)
@@ -147,15 +147,15 @@ head(mhw_unb_df)
 head(lchl_unb_df)
 
 # Save DF's
-file_name <- paste("chl_unb_lagsprep_df.csv")
+file_name <- paste("chl_unb_lagsprep.csv")
 write.table(lchl_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-file_name <- paste("mhw_unb_lagsprep_df.csv")
+file_name <- paste("mhw_unb_lagsprep.csv")
 write.table(mhw_unb_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Add Leads #####################################
 # Get LChl df
-file_name <- paste("chl_unb_lagsprep_df.csv")
+file_name <- paste("chl_unb_lagsprep.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(lchl_unb_df)
 
@@ -180,7 +180,7 @@ for(i in 1:length(vars_lag)) { #for each lag value...
     for(v in 1:length(vars_lchl)) {
         lchl_unb_lag_df <- lchl_unb_lag_df %>% relocate(gsub(" ", "", paste(vars_lchl[v],vars_lag[i])), .after = vars_lchl[v])
         }
-    df_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag_df")) #create dyamic lag df name
+    df_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag.csv")) #create dyamic lag df name
     write.table(lchl_unb_lag_df,gsub(" ", "", paste("cmpndData/",df_name)),sep=",") #save df w/ each lag value
     }
 doParallel::stopImplicitCluster()
@@ -188,7 +188,7 @@ head(lchl_unb_lag_df)
 rm(lchl_unb_lag_df, vars_lchl, lchl_unb_df)
 
 # Get MHW df
-file_name <- paste("mhw_unb_lagsprep_df.csv")
+file_name <- paste("mhw_unb_lagsprep.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(mhw_unb_df)
 
@@ -213,7 +213,7 @@ for(i in 1:length(vars_lag)) { #for each lag value...
     for(v in 1:length(vars_mhw)) {
         mhw_unb_lag_df <- mhw_unb_lag_df %>% relocate(gsub(" ", "", paste(vars_mhw[v],vars_lag[i])), .after = vars_mhw[v])
         }
-    df_name <- gsub(" ", "", paste("mhw_unb_",vars_lag[i],"lag_df")) #create dyamic lag df name
+    df_name <- gsub(" ", "", paste("mhw_unb_",vars_lag[i],"lag.csv")) #create dyamic lag df name
     write.table(mhw_unb_lag_df,gsub(" ", "", paste("cmpndData/",df_name)),sep=",") #save df w/ each lag value
     }
 doParallel::stopImplicitCluster()
@@ -222,14 +222,14 @@ head(mhw_unb_lag_df)
 # Combine DF's
 vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
 for(i in 1:length(vars_lag)){
-    file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag_df")) #create dyamic df name
+    file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag.csv")) #create dyamic df name
     lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
     lchl_unb_df <- lchl_unb_df[,-c(5,8)] #remove days since and location
-    file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag_df")) #create dyamic df name
+    file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag.csv")) #create dyamic df name
     mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
     mhw_unb_df <- mhw_unb_df[,-c(5,8)] #remove days since and location
     cmp_df <- merge(lchl_unb_df, mhw_unb_df, c("day", "mo", "yr", "doy", "lon", "lat")) #merge based on these columns
-    file_name <- gsub(" ", "", paste("cmpnd_unb_",vars_lag[i],"lag_df")) #create dyamic df name
+    file_name <- gsub(" ", "", paste("cmpnd_unb_",vars_lag[i],"lag.csv")) #create dyamic df name
     write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
     head(cmp_df)
     }
@@ -238,7 +238,7 @@ rm(lchl_unb_df,mhw_unb_df,cmp_df)
 
 ##################################### Add Compound Cats #####################################
 # Get lagged, unbalanced compound df
-file_name <- paste("cmpnd_unb_2lags180_df.csv")
+file_name <- paste("cmpnd_unb_2lags180.csv")
 cmpnd_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(cmpnd_unb_df)
 
@@ -279,13 +279,13 @@ colnames(cmp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil",
 head(cmp_df)
 
 # Save df with compound event categories
-file_name <- paste("cmpnd_cats_unb_df.csv")
+file_name <- paste("cmpnd_cats_unb.csv")
 write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Balance Compound DF #####################################
 # Get df with mhw and lchl compound events
-file_name <- paste("cmpnd_cats_unb_df.csv")
+file_name <- paste("cmpnd_cats_unb.csv")
 cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(cmp_df)
 
@@ -366,7 +366,7 @@ bal_mhw_ev_per
 bal_no_ev_per
 
 # Save balanced compound df
-file_name <- paste("cmpnd_balanced_df.csv")
+file_name <- paste("cmpnd_balanced.csv")
 write.table(cmp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #save balanced lchl dataset
 
 
