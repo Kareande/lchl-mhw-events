@@ -1,16 +1,15 @@
+## The nature of this codebase requires the code to be run in pieces. This entire script
+## is avaliable for reference, but it is broken up into data processing, exploratory
+## training, refined training, and testing. Those individual scripts can be run as-is.
+
 setwd("/home/kareande/lchl-mhw-events")
-library("ranger") #randomForest package
-library("vip") #variable importance plots
-library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
 library("doParallel") #parallel processing
-library("ggplot2") #aesthetic plotting
-library("plot.matrix") #confusion matrix
 #install.packages()
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv") #csv df name
+file_name <- paste("chl_unprocessed.csv") #csv df name
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #load df
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
@@ -88,7 +87,7 @@ write.table(lchl3_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 #file_name <- paste("chl5_unbalanced_df.csv")
 #write.table(lchl5_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
-lchl_df <- lchl3_df
+
 ##################################### Balance LChl dataset #####################################
 # Read unbalanced lchl df w/ multiple cats
 file_name <- paste("chl3_unbalanced_df.csv")
@@ -138,9 +137,17 @@ bal_cat2_per
 # Save balanced compound event df
 file_name <- paste("chl3_balanced_df.csv")
 write.table(lchl_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-   
+
 
 ##################################### Exploratory Train LChl RF #####################################
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+    
 # Prepare processed Lchl data
 file_name <- paste("chl3_balanced_df.csv")
 workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #load file
@@ -201,7 +208,7 @@ doParallel::stopImplicitCluster()
 tune_res
 
 # Visualize results of k-fold analysis training
-pdf(gsub(" ", "", paste("/cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/preTrainLchl",n_trees,"T.pdf")))
 
 tune_res %>%
   collect_metrics() %>%
@@ -220,15 +227,24 @@ dev.off()
 
 tune_res
 
-    
+
 ##################################### Refined Train LChl RF #####################################
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("vip") #variable importance plots
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+
 # Refine model specs for re-training based on previous results
 #for 150 trees; mtry 3:4, min_n 5:10 REDO WITH 150T---------------------------
 #for 200 trees; mtry x:x, min_n x:x
 mtry_min_range <- 3
 mtry_max_range <- 4
-n_min_range <- 5
-n_max_range <- 10
+n_min_range <- 10
+n_max_range <- 13
 
 rf_grid <- grid_regular(
   mtry(range = c(mtry_min_range, mtry_max_range)),
@@ -249,9 +265,9 @@ system.time({
     )
 })
 doParallel::stopImplicitCluster()
-    
+     
 # Visualize refined results
-pdf(gsub(" ", "", paste("cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/refTrnLchl",n_trees,"T.pdf")))
 
 regular_res %>%
   collect_metrics() %>%
@@ -280,7 +296,7 @@ file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 save(final_rf, file=file_path)
 
 # Check variable importance for trained model
-pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("/cmpndFigs/VarImpTrnLchl",n_trees,"T.pdf")))
 
 lchl_prep <- prep(lchl_rec)
 juiced <- juice(lchl_prep)
@@ -293,7 +309,81 @@ final_rf %>%
   vip(geom = "point")
 
 dev.off()
+
+
+##################################### Test LChl RF Model #####################################
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
+#install.packages()
+
+# Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
+set.seed(5)
+file_name <- paste("chl3_balanced_df.csv")
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
+workingset <- workingset[,-9] #remove lchl category
+workingset[workingset$lchlCat == 0,]$lchlCat <- "negligable"
+workingset[workingset$lchlCat == 1,]$lchlCat <- "moderate"
+workingset[workingset$lchlCat == 2,]$lchlCat <- "severe"
+workingset$lchlCat = as.factor(workingset$lchlCat)
+
+lchl_train <- workingset[sample(nrow(workingset), 633346), ]
+remove_r <- which(lchl_train == TRUE)
+lchl_test <- workingset[-remove_r, ]
+lchl_split <- initial_split(lchl_test, strata = lchlCat)
+lchl_test <- testing(lchl_split)
+lchl_rec <- recipe(lchlCat ~ ., data = lchl_train)
+
+head(lchl_test)
+
+# Create final model specification
+n_trees <- 200
+best_mtry <- 3
+best_minn <- 10
+
+final_spec <- rand_forest(
+  mtry = best_mtry, #number of variables sampled
+  trees = n_trees, #number of trees
+  min_n = best_minn #min number of datapoints for node to split
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+
+# Use testing data in final model
+final_wf <- workflow() %>%
+  add_recipe(lchl_rec) %>%
+  add_model(final_spec)
+
+final_res <- final_wf %>%
+  last_fit(lchl_split)
+
+final_res %>%
+  collect_metrics()
     
+# Produce confusion matrix
+pdf(gsub(" ", "", paste("cmpndFigs/confMatLchl",n_trees,"T.pdf")))
+
+final_res %>%
+  collect_predictions() %>%
+  conf_mat(lchlCat, .pred_class) %>%
+  autoplot(type = "heatmap")
+
+dev.off()
+
+
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
+#install.packages()
+
 ##################################### Test LChl RF Model #####################################
 # Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
 set.seed(5)
@@ -347,3 +437,4 @@ final_res %>%
   autoplot(type = "heatmap")
 
 dev.off()
+

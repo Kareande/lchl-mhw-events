@@ -5,7 +5,7 @@ library("doParallel") #parallel processing
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv") #name of df
+file_name <- paste("chl_unprocessed.csv") #name of df
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
@@ -48,20 +48,20 @@ lchl_df <- cbind(lchl_df,lchl_cat)
 colnames(lchl_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df
-file_name <- paste("chl_unbalanced_df.csv")
+file_name <- paste("chl_unbalanced.csv")
 file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 write.table(lchl_df,file_path,sep=",")
 
 
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get LChl df
-file_name <- paste("chl_unbalanced_df.csv")
+file_name <- paste("chl_unbalanced.csv")
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(lchl_df)
 #tail(lchl_df)
 
 # Get MHW df
-file_name <- paste("mhw_unbalanced_df.csv")
+file_name <- paste("mhw_unbalanced.csv")
 mhw_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 mhw_df$mhwCat[mhw_df$mhwCat > 0] <- 1 #condense MHW cats into two categories (presence or absence)
 head(mhw_df)
@@ -101,13 +101,13 @@ nrow(cmp_df)
 
 # Save unbalanced compound df
 cmp_df <- na.omit(cmp_df) #remove NA values
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Add Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 chl_col <- cmp_df[,18] #select chl cat column
 mhw_col <- cmp_df[,19] #select mhw cat column
@@ -155,13 +155,13 @@ colnames(cmp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil",
 head(cmp_df)
 
 # Save df with compound event categories
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Balance Compound DF #####################################
 # Get df with mhw and lchl compound events
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(cmp_df)
 #tail(cmp_df)
@@ -243,7 +243,7 @@ bal_mhw_ev_per
 bal_no_ev_per
 
 # Save balanced compound df
-file_name <- paste("cmpnd_balanced_df.csv")
+file_name <- paste("cmpnd_balanced.csv")
 write.table(cmp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #save balanced lchl dataset
 
 print("#################################################################

@@ -5,7 +5,7 @@ library("doParallel") #parallel processing
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv") #csv df name
+file_name <- paste("chl_unprocessed.csv") #csv df name
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #load df
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
