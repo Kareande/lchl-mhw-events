@@ -8,62 +8,61 @@ library("plot.matrix") #confusion matrix
 #install.packages()
 
 ##################################### Test Compound RF Model #####################################
-# Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
+# Provide optimal parameters for the final model
+best_mtry <- c()
+best_minn <- c()
+best_mtry[1] <- #2 days lag
+best_minn[1] <-
+best_mtry[2] <- #7 days lag
+best_minn[2] <- 
+best_mtry[3] <- #14 days lag
+best_minn[3] <- 
+best_mtry[4] <- #180 days lag
+best_minn[4] <- 
+
+vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
 set.seed(3939)
-file_name <- paste("cmpnd_balanced_df.csv")
-workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
-workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
-workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
-workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
-workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
-workingset[workingset$cmpCat == 0,]$cmpCat="No event"
-workingset$cmpCat = as.factor(workingset$cmpCat)
+doParallel::registerDoParallel(32)
+for(i in 1:length(vars_lag)){
+    # Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
+    file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
+    workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
+    workingset <- workingset[,-c(1:2,31:32)] #remove day, mo, lchlCat, and mhwCat columns
+    workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
+    workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
+    workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
+    workingset[workingset$cmpCat == 0,]$cmpCat="No event"
+    workingset$cmpCat = as.factor(workingset$cmpCat)
+    
+    # Split data into training and testing sets
+    cmp_split <- initial_split(workingset, strata = cmpCat)
+    cmp_train <- training(cmp_split)
+    cmp_test <- testing(cmp_split)
+    cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
 
-cmp_split <- initial_split(workingset, strata = cmpCat)
-cmp_train <- training(cmp_split)
-cmp_test <- testing(cmp_split)
-cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
+    # Create final model specification
+    final_spec <- rand_forest(
+      mtry = best_mtry[i], #number of variables sampled
+      trees = n_trees, #number of decision trees
+      min_n = best_minn[i]) %>% #min number of datapoints for node to split
+      set_mode("classification") %>%
+      set_engine("ranger")
 
-head(cmp_test)
+    # Use testing data in model
+    final_wf <- workflow() %>%
+      add_recipe(cmp_rec) %>%
+      add_model(final_rf)
+    final_res <- final_wf %>%
+      last_fit(cmp_split)
+    final_res %>%
+      collect_metrics()
 
-# Create final model specification
-n_trees <- 200
-best_mtry <- 6
-best_minn <- 2
-
-final_spec <- rand_forest(
-  mtry = best_mtry, #number of variables sampled
-  trees = n_trees, #number of decision trees
-  min_n = best_minn, #min number of datapoints for node to split
-) %>%
-  set_mode("classification") %>%
-  set_engine("ranger")
-
-# Use testing data in model
-final_wf <- workflow() %>%
-  add_recipe(cmp_rec) %>%
-  add_model(final_rf)
-
-final_res <- final_wf %>%
-  last_fit(cmp_split)
-
-final_res %>%
-  collect_metrics()
-
-# Produce confusion matrix
-pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
-
-final_res %>%
-  collect_predictions() %>%
-  conf_mat(cmpCat, .pred_class) %>%
-  autoplot(type = "heatmap")
-
-dev.off()
-
-print("#############################################################
-	#############################################################
-	
-	Testing of RF Model complete. Confusion matrix saved as .pdf.
-
-	#############################################################
-	#############################################################")
+    # Produce confusion matrix
+    pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
+    final_res %>%
+      collect_predictions() %>%
+      conf_mat(cmpCat, .pred_class) %>%
+      autoplot(type = "heatmap")
+    dev.off()
+    }
+doParallel::stopImplicitCluster()
