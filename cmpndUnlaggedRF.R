@@ -252,7 +252,7 @@ write.table(cmp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #sa
 
 
 
-##################################### Exploratory Train LChl RF #####################################
+##################################### Exploratory Train Cmpnd RF #####################################
 setwd("/home/kareande/lchl-mhw-events")
 library("ranger") #randomForest package
 library("tidymodels") #tidyverse models
@@ -334,7 +334,7 @@ tune_res %>%
 dev.off()
 
 
-##################################### Refined Train LChl RF #####################################
+##################################### Refined Train Cmpnd RF #####################################
 setwd("/home/kareande/lchl-mhw-events")
 library("ranger") #randomForest package
 library("vip") #variable importance plots
@@ -414,7 +414,7 @@ dev.off()
 
 
 
-##################################### Test Compound RF Model #####################################
+##################################### Test Cmpnd RF #####################################
 setwd("/home/kareande/lchl-mhw-events")
 library("ranger") #randomForest package
 library("tidymodels") #tidyverse models
