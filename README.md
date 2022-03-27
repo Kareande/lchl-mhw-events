@@ -10,19 +10,13 @@ Over the last two decades, marine heatwaves (MHWs) have been observed in all maj
     (4)altering dimensions of latitude/longitude,
     **For reference only, not runnable!**
 
-**cmpndRF** contains code for:
-    (1)categorizing the LChl and MHW data as either event or not event in their respective datasets,
-    (2)categorizing events within the compound dataset as no event, mhw event, lchl event or compound event,
-    (3)balancing the compound dataset,
-    (4)training compound event RF model,
-    (5)testing compound event RF model
-    **For reference only, choose specific cmpnd script below for running!**
-
 **cmpndDataProcessing** contains code for:
-    (1)categorizing the LChl and MHW data as either event or not event in their respective datasets,
-    (2)combining thr LChl and MHW datasets into Compound dataset,
-    (3)categorizing events within the compound dataset as no event, mhw event, lchl event or compound event,
-    (4)balancing the compound dataset
+    (1)categorizing the LChl and MHW data as either "event" or "no event" in their respective datasets,
+    (2)condensing day, month, and year data into "days since" column
+    (3)condensing lat and lon data into one "location" column
+    (4)adding lags to the LChl and MHW datasets
+    (5)categorizing events within the compound dataset as "no event", "mhw event", "lchl event" or "compound event",
+    (6)balancing the lagged compound dataset
 
 **cmpndExplTrain** contains code for:
     (1)exploratory training of compound RF model,
@@ -36,36 +30,20 @@ Over the last two decades, marine heatwaves (MHWs) have been observed in all maj
     (1)testing accuracy of compound RF model predictions,
     (2)producing confusion matrix to visualize model accuracy
 
+**cmpndUnlaggedRF** contains code for:
+    (1)categorizing the LChl and MHW data as either event or not event in their respective datasets,
+    (2)categorizing events within the compound dataset as no event, mhw event, lchl event or compound event,
+    (3)balancing the compound dataset,
+    (4)training compound event RF model,
+    (5)testing compound event RF model
+    **The following sections must be ran independently: Exploratory Train, Refined Train, and Test.**
+
 **lchlRF** contains code for:
     (1)categorizing Lchl data as negligable, moderate, severe, and extreme,
     (2)balancing LChl dataset,
     (3)training LChl event RF model,
     (4)testing LChl event RF model
-    **For reference only, choose specific lchl script below for running!**
-
-**lchlDataProcessing** contains code for:
-    (1)categorizing LChl data as negligable, moderate, severe, and extreme,
-    (2)balancing the LChl dataset
-
-**lchlExplTrain** contains code for:
-    (1)exploratory training of LChl RF model
-    (2)graphing accuracy of mtry and min n parameters
-
-**lchlRefTrain** contains code for:
-    (1)refined training of LChl RF model based on exploratory results
-    (2)graphing optimal combinations of mtry and min n parameters
-
-**lchlTestRF** contains code for:
-    (1)testing accuracy of LChl RF model predictions
-    (2)producing confusion matrix to visualize model accuracy
-    
-**cmpndLagsDataProcessing** contains code for:
-    (1)categorizing the LChl and MHW data as either "event" or "no event" in their respective datasets,
-    (2)condensing day, month, and year data into "days since" column
-    (3)condensing lat and lon data into one "location" column
-    (4)adding lags to the LChl and MHW datasets
-    (5)categorizing events within the compound dataset as "no event", "mhw event", "lchl event" or "compound event",
-    (6)balancing the lagged compound dataset
+    **The following sections must be ran independently: Exploratory Train, Refined Train, and Test.**
 
 Unprocessed, unbalanced data can be found here: https://www.dropbox.com/sh/3locafvuzq9tylg/AAB5bwDgFJCzlJ-NLKiNwmbTa?dl=0What
 All other datasets (balanced, categorized, compounded) are created within the code.
