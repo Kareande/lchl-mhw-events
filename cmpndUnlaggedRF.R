@@ -343,6 +343,23 @@ library("foreach") #parallel processing
 library("doParallel") #parallel processing
 library("ggplot2") #aesthetic plotting
 #install.packages()
+    
+# Re-load processed Lchl data
+file_name <- paste("cmpnd_balanced_df.csv")
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
+workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
+workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
+workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
+workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
+workingset[workingset$cmpCat == 0,]$cmpCat="No event"
+workingset$cmpCat = as.factor(workingset$cmpCat)
+
+# Split data: MAKE SURE SAME SEED AS EXPLORATORY TRAINING SPLIT
+set.seed(3939)
+cmp_split <- initial_split(workingset, strata = cmpCat)
+cmp_train <- training(cmp_split)
+cmp_test <- testing(cmp_split)
+cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
 
 # Refine model specs for re-training based on previous results
 #for 200 trees; mtry 1:9, min_n 3,6,7
@@ -350,6 +367,14 @@ n_min_range <- 2
 n_max_range <- 9
 mtry_min_range <- 6
 mtry_max_range <- 7
+    
+tune_spec <- rand_forest(
+  mtry = tune(), #number of variables sampled
+  trees = n_trees, #change number of trees
+  min_n = tune(), #min number of datapoints for node to split
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
 
 rf_grid <- grid_regular(
   mtry(range = c(mtry_min_range, mtry_max_range)),
@@ -357,11 +382,14 @@ rf_grid <- grid_regular(
   levels = 10
 )
 
-rf_grid
-
 # Train models using refined specs
 doParallel::registerDoParallel(8)
 start_time <- Sys.time()
+
+cmp_folds <- vfold_cv(cmp_train)
+tune_wf <- workflow() %>%
+  add_recipe(cmp_rec) %>%
+  add_model(tune_spec)
 
 regular_res <- tune_grid(
   tune_wf,
