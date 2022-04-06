@@ -159,8 +159,9 @@ file_name <- paste("chl_unb_lagsprep.csv")
 lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(lchl_unb_df)
 
-# Create LChl DF's with 2, 7, 14, and 180 days of lags
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+# Create LChl DF's with various values of lags
+#vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+vars_lag = c(365, 730) #1yr, 2yr
 vars_lchl = c(colnames(lchl_unb_df))[-c(1:8,15)] #var names
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)) { #for each lag value...
@@ -172,7 +173,7 @@ for(i in 1:length(vars_lag)) { #for each lag value...
         group_by(location) %>% #limit shifting of rows to be by date
         dplyr::mutate(!!dyn_col[1] := dplyr::lead(nit, n = vars_lag[i], default = NA)) %>% #add lag to nit-- CANNOT LOOP
         dplyr::mutate(!!dyn_col[2] := dplyr::lead(oxy, n = vars_lag[i], default = NA)) %>% #add lag to oxy-- B/C 1ST ARG
-        dplyr::mutate(!!dyn_col[3] := dplyr::lead(pho, n = vars_lag[i], default = NA)) %>% #add lag to pho-- IN LAG()
+        dplyr::mutate(!!dyn_col[3] := dplyr::lead(pho, n = vars_lag[i], default = NA)) %>% #add lag to pho-- IN lead()
         dplyr::mutate(!!dyn_col[4] := dplyr::lead(chl, n = vars_lag[i], default = NA)) %>% #add lag to chl-- CANT BE
         dplyr::mutate(!!dyn_col[5] := dplyr::lead(sil, n = vars_lag[i], default = NA)) %>% #add lag to sil-- CHANGED TO
         dplyr::mutate(!!dyn_col[6] := dplyr::lead(npp, n = vars_lag[i], default = NA)) %>% #add lag to npp-- vars_lchl[v]
@@ -190,10 +191,8 @@ rm(lchl_unb_lag_df, vars_lchl, lchl_unb_df)
 # Get MHW df
 file_name <- paste("mhw_unb_lagsprep.csv")
 mhw_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
-head(mhw_unb_df)
 
-# Create MHW DF's with 2, 7, 14, and 180 days of lags
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+# Create MHW DF's with various values of lags
 vars_mhw = c(colnames(mhw_unb_df))[-c(1:8,15)] #var names
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)) { #for each lag value...
@@ -220,7 +219,6 @@ doParallel::stopImplicitCluster()
 head(mhw_unb_lag_df)
 
 # Combine DF's
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
 for(i in 1:length(vars_lag)){
     file_name <- gsub(" ", "", paste("lchl_unb_",vars_lag[i],"lag.csv")) #create dyamic df name
     lchl_unb_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
@@ -239,7 +237,6 @@ rm(lchl_unb_df,mhw_unb_df,cmp_df)
 
 ##################################### Add Compound Cats #####################################
 # Add categories to cmpnd DF
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
     file_name <- gsub(" ", "", paste("cmpnd_unb_",vars_lag[i],"lag.csv")) #create dyamic df name
@@ -269,7 +266,6 @@ rm(cmp_df)
 
 
 ##################################### Balance Compound DF #####################################
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
 set.seed(313)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
@@ -334,59 +330,27 @@ for(i in 1:length(vars_lag)){
 doParallel::stopImplicitCluster()
 
 # Verify the balanced percentages of each category for each balanced DF
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
 bal_cmp_ev_pers <- c()
 bal_chl_ev_pers <- c()
 bal_mhw_ev_pers <- c()
 bal_no_ev_pers <- c()
 
-file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[1],"lag.csv")) #create dyamic df name
-cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-bal_cmp_ev <- nrow(subset(cmp_bal_df, cmpCat=="3")) #number of compound events
-bal_chl_ev <- nrow(subset(cmp_bal_df, cmpCat=="2")) #lchl only events
-bal_mhw_ev <- nrow(subset(cmp_bal_df, cmpCat=="1")) #mhw only events
-bal_no_ev <- nrow(subset(cmp_bal_df, cmpCat=="0")) #no events
-bal_tot_ev <- bal_cmp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #total observations
-bal_cmp_ev_pers[1] <- (bal_cmp_ev/bal_tot_ev)*100 #compound events (3)
-bal_chl_ev_pers[1] <- (bal_chl_ev/bal_tot_ev)*100 #lchl only (2)
-bal_mhw_ev_pers[1] <- (bal_mhw_ev/bal_tot_ev)*100 #mhw only (1)
-bal_no_ev_pers[1] <- (bal_no_ev/bal_tot_ev)*100 #no event (0)
-
-file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[2],"lag.csv")) #create dyamic df name
-cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-bal_cmp_ev <- nrow(subset(cmp_bal_df, cmpCat=="3")) #number of compound events
-bal_chl_ev <- nrow(subset(cmp_bal_df, cmpCat=="2")) #lchl only events
-bal_mhw_ev <- nrow(subset(cmp_bal_df, cmpCat=="1")) #mhw only events
-bal_no_ev <- nrow(subset(cmp_bal_df, cmpCat=="0")) #no events
-bal_tot_ev <- bal_cmp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #total observations
-bal_cmp_ev_pers[2] <- (bal_cmp_ev/bal_tot_ev)*100 #compound events (3)
-bal_chl_ev_pers[2] <- (bal_chl_ev/bal_tot_ev)*100 #lchl only (2)
-bal_mhw_ev_pers[2] <- (bal_mhw_ev/bal_tot_ev)*100 #mhw only (1)
-bal_no_ev_pers[2] <- (bal_no_ev/bal_tot_ev)*100 #no event (0)
-
-file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[3],"lag.csv")) #create dyamic df name
-cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-bal_cmp_ev <- nrow(subset(cmp_bal_df, cmpCat=="3")) #number of compound events
-bal_chl_ev <- nrow(subset(cmp_bal_df, cmpCat=="2")) #lchl only events
-bal_mhw_ev <- nrow(subset(cmp_bal_df, cmpCat=="1")) #mhw only events
-bal_no_ev <- nrow(subset(cmp_bal_df, cmpCat=="0")) #no events
-bal_tot_ev <- bal_cmp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #total observations
-bal_cmp_ev_pers[3] <- (bal_cmp_ev/bal_tot_ev)*100 #compound events (3)
-bal_chl_ev_pers[3] <- (bal_chl_ev/bal_tot_ev)*100 #lchl only (2)
-bal_mhw_ev_pers[3] <- (bal_mhw_ev/bal_tot_ev)*100 #mhw only (1)
-bal_no_ev_pers[3] <- (bal_no_ev/bal_tot_ev)*100 #no event (0)
-
-file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[4],"lag.csv")) #create dyamic df name
-cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-bal_cmp_ev <- nrow(subset(cmp_bal_df, cmpCat=="3")) #number of compound events
-bal_chl_ev <- nrow(subset(cmp_bal_df, cmpCat=="2")) #lchl only events
-bal_mhw_ev <- nrow(subset(cmp_bal_df, cmpCat=="1")) #mhw only events
-bal_no_ev <- nrow(subset(cmp_bal_df, cmpCat=="0")) #no events
-bal_tot_ev <- bal_cmp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #total observations
-bal_cmp_ev_pers[4] <- (bal_cmp_ev/bal_tot_ev)*100 #compound events (3)
-bal_chl_ev_pers[4] <- (bal_chl_ev/bal_tot_ev)*100 #lchl only (2)
-bal_mhw_ev_pers[4] <- (bal_mhw_ev/bal_tot_ev)*100 #mhw only (1)
-bal_no_ev_pers[4] <- (bal_no_ev/bal_tot_ev)*100 #no event (0)
+set.seed(313)
+doParallel::registerDoParallel(8)
+for(i in 1:length(vars_lag)){
+    file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
+    cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
+    bal_cmp_ev <- nrow(subset(cmp_bal_df, cmpCat=="3")) #number of compound events
+    bal_chl_ev <- nrow(subset(cmp_bal_df, cmpCat=="2")) #lchl only events
+    bal_mhw_ev <- nrow(subset(cmp_bal_df, cmpCat=="1")) #mhw only events
+    bal_no_ev <- nrow(subset(cmp_bal_df, cmpCat=="0")) #no events
+    bal_tot_ev <- bal_cmp_ev+bal_chl_ev+bal_mhw_ev+bal_no_ev #total observations
+    bal_cmp_ev_pers[i] <- (bal_cmp_ev/bal_tot_ev)*100 #compound events (3)
+    bal_chl_ev_pers[i] <- (bal_chl_ev/bal_tot_ev)*100 #lchl only (2)
+    bal_mhw_ev_pers[i] <- (bal_mhw_ev/bal_tot_ev)*100 #mhw only (1)
+    bal_no_ev_pers[i] <- (bal_no_ev/bal_tot_ev)*100 #no event (0)
+    }
+doParallel::stopImplicitCluster()
     
 bal_cmp_ev_pers #25, 25, 25, 25
 bal_chl_ev_pers #25, 25, 25, 25
