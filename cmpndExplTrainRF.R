@@ -7,7 +7,9 @@ library("ggplot2") #aesthetic plotting
 #install.packages()
 
 ##################################### Exploratory Train LChl RF #####################################
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+#vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+vars_lag = c(365, 730) #1yr, 2yr
+n_trees <- 200
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
@@ -27,7 +29,6 @@ for(i in 1:length(vars_lag)){
     cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
     
     # Create model specification
-    n_trees <- 200
     tune_spec <- rand_forest(
       mtry = tune(),      #number of variables sampled
       trees = n_trees,    #change number of trees
@@ -39,7 +40,6 @@ for(i in 1:length(vars_lag)){
       add_model(tune_spec)
     
     # Training model
-    start_time <- Sys.time()
     cmp_folds <- vfold_cv(cmp_train)
     tune_res <- tune_grid(
       tune_wf,
@@ -48,7 +48,7 @@ for(i in 1:length(vars_lag)){
 
     # Visualize results of k-fold analysis; accuracy
     pdf(gsub(" ", "", paste("cmpndFigs/preTrainCmpnd",vars_lag[i],"lag",n_trees,"T.pdf")))
-    tune_res %>%
+    plsimg <- tune_res %>%
       collect_metrics() %>%
       filter(.metric == "accuracy") %>%
       select(mean, min_n, mtry) %>%
@@ -59,6 +59,9 @@ for(i in 1:length(vars_lag)){
       geom_point(show.legend = FALSE) +
       facet_wrap(~parameter, scales = "free_x") +
       labs(x = NULL, y = "Accuracy")
+    print(plsimg)
     dev.off()
+    rm(list= ls()[!(ls() %in% c('vars_lag','n_trees'))])
     }
 doParallel::stopImplicitCluster()
+
