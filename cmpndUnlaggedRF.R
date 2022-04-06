@@ -1,16 +1,15 @@
+## The nature of this codebase requires the code to be run in pieces. This entire script
+## is avaliable for reference, but it is broken up into data processing, exploratory
+## training, refined training, and testing. Those individual scripts can be run as-is.
+
 setwd("/home/kareande/lchl-mhw-events")
-library("ranger") #randomForest package
-library("vip") #variable importance plots
-library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
 library("doParallel") #parallel processing
-library("ggplot2") #aesthetic plotting
-library("plot.matrix") #confusion matrix
 #install.packages()
 
 ##################################### Define LChl categories #####################################
 # Get unbalanced and uncategorized lchl df
-file_name <- paste("master_with_contime_df.csv") #name of df
+file_name <- paste("chl_unprocessed.csv") #name of df
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
@@ -53,20 +52,20 @@ lchl_df <- cbind(lchl_df,lchl_cat)
 colnames(lchl_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp","lchlCat")
 
 # Save df
-file_name <- paste("chl_unbalanced_df.csv")
+file_name <- paste("chl_unbalanced.csv")
 file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 write.table(lchl_df,file_path,sep=",")
 
 
 ##################################### Combine LChl and MHW dataframes #####################################
 # Get LChl df
-file_name <- paste("chl_unbalanced_df.csv")
+file_name <- paste("chl_unbalanced.csv")
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(lchl_df)
 #tail(lchl_df)
 
 # Get MHW df
-file_name <- paste("mhw_unbalanced_df.csv")
+file_name <- paste("mhw_unbalanced.csv")
 mhw_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 mhw_df$mhwCat[mhw_df$mhwCat > 0] <- 1 #condense MHW cats into two categories (presence or absence)
 head(mhw_df)
@@ -106,13 +105,13 @@ nrow(cmp_df)
 
 # Save unbalanced compound df
 cmp_df <- na.omit(cmp_df) #remove NA values
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Add Compound Cats #####################################
 # Get unbalanced, uncategorized compound df
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 chl_col <- cmp_df[,18] #select chl cat column
 mhw_col <- cmp_df[,19] #select mhw cat column
@@ -153,24 +152,24 @@ length(cmp_cat) #2718254
 #doParallel::stopImplicitCluster()
 #length(lchl_cat)
 
-# Add cmpound cats to df
+# Add compound cats to df
 cmp_df <- cbind(cmp_df,cmp_cat)
 colnames(cmp_df) <- c("day","mo","yr","lon","lat","nit","oxy","pho","chl","sil","npp",
                        "qnet","slp","sat","wndSp","sst","sstRoC","lchlCat","mhwCat","cmpCat")
 head(cmp_df)
-    
+
 # Save df with compound event categories
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 
 ##################################### Balance Compound DF #####################################
 # Get df with mhw and lchl compound events
-file_name <- paste("cmpnd_unbalanced_df.csv")
+file_name <- paste("cmpnd_unbalanced.csv")
 cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 head(cmp_df)
 #tail(cmp_df)
-    
+
 # Find the unbalanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)
 cmp_ev <- nrow(subset(cmp_df, cmpCat=="3")) #number of compound events, 31474
 chl_ev <- nrow(subset(cmp_df, cmpCat=="2")) #lchl only events, 406426
@@ -186,9 +185,9 @@ cmp_ev_per
 chl_ev_per
 mhw_ev_per
 no_ev_per
-     
+    
 # Calculate how many rows of each category to remove
-cmp_x19_df <- subset(omp_df, yr!=2019) #no 2019
+cmp_x19_df <- subset(cmp_df, yr!=2019) #no 2019
 cmp_19_df <- subset(cmp_df, yr==2019) #only 2019
 
 x19_cmp_ev <- nrow(subset(cmp_x19_df, cmpCat=="3")) #28594, least observations
@@ -248,16 +247,25 @@ bal_mhw_ev_per
 bal_no_ev_per
 
 # Save balanced compound df
-file_name <- paste("cmpnd_balanced_df.csv")
+file_name <- paste("cmpnd_balanced.csv")
 write.table(cmp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #save balanced lchl dataset
 
 
-##################################### Exploratory Train LChl RF #####################################
+
+##################################### Exploratory Train Cmpnd RF #####################################
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+
 # Prepare processed Lchl data
 file_name <- paste("cmpnd_balanced_df.csv")
 workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
 workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
-workingset[workingset$cmpCat == 3,]$cmpCat="Cmpound"
+workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
 workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
 workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
 workingset[workingset$cmpCat == 0,]$cmpCat="No event"
@@ -326,13 +334,47 @@ tune_res %>%
 dev.off()
 
 
-##################################### Refined Train LChl RF #####################################
+##################################### Refined Train Cmpnd RF #####################################
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("vip") #variable importance plots
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+#install.packages()
+    
+# Re-load processed Lchl data
+file_name <- paste("cmpnd_balanced_df.csv")
+workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), header=TRUE)
+workingset <- workingset[,c(-9,-18,-19)] #remove the lchl, mhwCat, and lchlCat columns
+workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
+workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
+workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
+workingset[workingset$cmpCat == 0,]$cmpCat="No event"
+workingset$cmpCat = as.factor(workingset$cmpCat)
+
+# Split data: MAKE SURE SAME SEED AS EXPLORATORY TRAINING SPLIT
+set.seed(3939)
+cmp_split <- initial_split(workingset, strata = cmpCat)
+cmp_train <- training(cmp_split)
+cmp_test <- testing(cmp_split)
+cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
+
 # Refine model specs for re-training based on previous results
 #for 200 trees; mtry 1:9, min_n 3,6,7
 n_min_range <- 2
 n_max_range <- 9
 mtry_min_range <- 6
 mtry_max_range <- 7
+    
+tune_spec <- rand_forest(
+  mtry = tune(), #number of variables sampled
+  trees = n_trees, #change number of trees
+  min_n = tune(), #min number of datapoints for node to split
+) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
 
 rf_grid <- grid_regular(
   mtry(range = c(mtry_min_range, mtry_max_range)),
@@ -340,11 +382,14 @@ rf_grid <- grid_regular(
   levels = 10
 )
 
-rf_grid
-
 # Train models using refined specs
 doParallel::registerDoParallel(8)
 start_time <- Sys.time()
+
+cmp_folds <- vfold_cv(cmp_train)
+tune_wf <- workflow() %>%
+  add_recipe(cmp_rec) %>%
+  add_model(tune_spec)
 
 regular_res <- tune_grid(
   tune_wf,
@@ -378,7 +423,7 @@ final_rf <- finalize_model(
   best_rf
 )
 
-final_rf 
+final_rf #mtry = 6, min_n = 2 
 
 # Check variable importance for training data
 pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
@@ -396,7 +441,17 @@ final_rf %>%
 dev.off()
 
 
-##################################### Test Compound RF Model #####################################
+
+##################################### Test Cmpnd RF #####################################
+setwd("/home/kareande/lchl-mhw-events")
+library("ranger") #randomForest package
+library("tidymodels") #tidyverse models
+library("foreach") #parallel processing
+library("doParallel") #parallel processing
+library("ggplot2") #aesthetic plotting
+library("plot.matrix") #confusion matrix
+#install.packages()
+
 # Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
 set.seed(3939)
 file_name <- paste("cmpnd_balanced_df.csv")
@@ -440,7 +495,7 @@ final_res %>%
   collect_metrics()
 
 # Produce confusion matrix
-pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpndNoChl",n_trees,"T.pdf")))
+pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",n_lag,"Lag",n_trees,"T.pdf")))
 
 final_res %>%
   collect_predictions() %>%
@@ -448,3 +503,4 @@ final_res %>%
   autoplot(type = "heatmap")
 
 dev.off()
+

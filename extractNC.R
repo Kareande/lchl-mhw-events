@@ -131,14 +131,14 @@ comp_df01 <- na.omit(comp_df01)
 csvfile <- "/auto/home/kareande/mhwData/pacificData/lchl_1.csv"
 write.table(comp_df01,csvfile, row.names=FALSE, sep=",")
 
-# Will need to combine all dataframed into one master df
+# Will need to combine all dataframed into one main df
 
 doParallel::registerDoParallel()
 for(i in 1993:2019) { #loop to compile each yearly array file
     df <- paste("array_time",i,".csv", sep="") #create array file name to be read through each i, 1993:2019
     comp_df <- read.csv(df, sep="", header=FALSE) #read each array file from 1993:2019
     rm(df)  #remove var for cpu space
-    master_with_time_df <- rbind(master_with_time_df, comp_df) #add on each array file by rows
+    chl_convert_df <- rbind(chl_convert_df, comp_df) #add on each array file by rows
     rm(comp_df) #remove var for cpu space
 }
 doParallel::stopImplicitCluster()
