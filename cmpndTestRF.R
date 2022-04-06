@@ -5,22 +5,24 @@ library("foreach") #parallel processing
 library("doParallel") #parallel processing
 library("ggplot2") #aesthetic plotting
 library("plot.matrix") #confusion matrix
+library("caret") #proportional matrix
 #install.packages()
 
 ##################################### Test Compound RF Model #####################################
 # Provide optimal parameters for the final model
 best_mtry <- c()
 best_minn <- c()
-best_mtry[1] <- #2 days lag
-best_minn[1] <-
-best_mtry[2] <- #7 days lag
-best_minn[2] <- 
-best_mtry[3] <- #14 days lag
-best_minn[3] <- 
-best_mtry[4] <- #180 days lag
-best_minn[4] <- 
+best_mtry[1] <- 26 #2 days lag
+best_minn[1] <- 2
+best_mtry[2] <- 5 #7 days lag
+best_minn[2] <- 1
+best_mtry[3] <- 6 #14 days lag
+best_minn[3] <- 1
+best_mtry[4] <- 7 #180 days lag
+best_minn[4] <- 1
 
 vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+n_trees <- 200
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
@@ -51,7 +53,7 @@ for(i in 1:length(vars_lag)){
     # Use testing data in model
     final_wf <- workflow() %>%
       add_recipe(cmp_rec) %>%
-      add_model(final_rf)
+      add_model(final_spec)
     final_res <- final_wf %>%
       last_fit(cmp_split)
     final_res %>%
@@ -64,5 +66,47 @@ for(i in 1:length(vars_lag)){
       conf_mat(cmpCat, .pred_class) %>%
       autoplot(type = "heatmap")
     dev.off()
+    
+    # Produce proportional confusion matrix
+    cmat <- as.table(confusionMatrix(collect_predictions(final_res)$.pred_class,collect_predictions(final_res)$cmpCat))
+    cmpt <- sum(cmat[,1])
+    chlt <- sum(cmat[,2])
+    mhwt <- sum(cmat[,3])
+    noet <- sum(cmat[,4])
+    c11 <- cmat[1,1]/cmpt
+    c21 <- cmat[2,1]/cmpt
+    c31 <- cmat[3,1]/cmpt
+    c41 <- cmat[4,1]/cmpt
+    c12 <- cmat[1,2]/chlt
+    c22 <- cmat[2,2]/chlt
+    c32 <- cmat[3,2]/chlt
+    c42 <- cmat[4,2]/chlt
+    c13 <- cmat[1,3]/mhwt
+    c23 <- cmat[2,3]/mhwt
+    c33 <- cmat[3,3]/mhwt
+    c43 <- cmat[4,3]/mhwt
+    c14 <- cmat[1,4]/noet
+    c24 <- cmat[2,4]/noet
+    c34 <- cmat[3,4]/noet
+    c44 <- cmat[4,4]/noet
+    lab <- c("Compound", "LChl Event", "MHW Event", "None")
+    cnfs <- matrix(c(c11, c21, c31, c41, c12, c22, c32, c42, c13, c23, c33, c43, c14, c24, c34, c44),
+                        nrow = 4, ncol = 4,
+                        dimnames = list(lab, lab))
+    pdf(gsub(" ", "", paste("cmpndFigs/confMatPrptnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
+    par(mar=c(5.1, 4.1, 4.1, 4.1)) # adapt margins
+    plot(cnfs,
+         xlab="",
+         ylab="",
+         main="RF Prediction Accuracy",
+         digits=2,
+         fmt.cell='%.2f',
+         cex=1,
+         col=topo.colors,
+         breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1),
+         spacing.key=c(0.75,0.3,-.5),
+         fmt.key="%.3f",)
+    dev.off()
+    rm(list= ls()[!(ls() %in% c('best_mtry','best_minn','vars_lag','n_trees'))])
     }
 doParallel::stopImplicitCluster()
