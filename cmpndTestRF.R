@@ -20,8 +20,12 @@ best_mtry[3] <- 6 #14 days lag
 best_minn[3] <- 1
 best_mtry[4] <- 7 #180 days lag
 best_minn[4] <- 1
+best_mtry[5] <-  #365 days lag
+best_minn[5] <- 
+best_mtry[6] <-  #730 days lag
+best_minn[6] <- 
 
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo
 n_trees <- 200
 set.seed(3939)
 doParallel::registerDoParallel(32)
@@ -40,7 +44,7 @@ for(i in 1:length(vars_lag)){
     cmp_split <- initial_split(workingset, strata = cmpCat)
     cmp_train <- training(cmp_split)
     cmp_test <- testing(cmp_split)
-    cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
+    cmp_rec <- recipe(cmpCat ~ ., data = cmp_test)
 
     # Create final model specification
     final_spec <- rand_forest(
@@ -61,7 +65,7 @@ for(i in 1:length(vars_lag)){
 
     # Produce confusion matrix
     pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
-    plitimg <- final_res %>%
+    pltimg <- final_res %>%
       collect_predictions() %>%
       conf_mat(cmpCat, .pred_class) %>%
       autoplot(type = "heatmap")
@@ -96,7 +100,7 @@ for(i in 1:length(vars_lag)){
                         dimnames = list(lab, lab))
     pdf(gsub(" ", "", paste("cmpndFigs/confMatPrptnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
     par(mar=c(5.1, 4.1, 4.1, 4.1)) # adapt margins
-    plot(cnfs,
+    pltimg <- plot(cnfs,
          xlab="",
          ylab="",
          main="RF Prediction Accuracy",
@@ -107,6 +111,7 @@ for(i in 1:length(vars_lag)){
          breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1),
          spacing.key=c(0.75,0.3,-.5),
          fmt.key="%.3f",)
+    print(pltimg)
     dev.off()
     rm(list= ls()[!(ls() %in% c('best_mtry','best_minn','vars_lag','n_trees'))])
     }
