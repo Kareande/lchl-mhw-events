@@ -48,7 +48,7 @@ for(i in 1:length(vars_lag)){
 
     # Visualize results of k-fold analysis; accuracy
     pdf(gsub(" ", "", paste("cmpndFigs/preTrainCmpnd",vars_lag[i],"lag",n_trees,"T.pdf")))
-    plsimg <- tune_res %>%
+    pltimg <- tune_res %>%
       collect_metrics() %>%
       filter(.metric == "accuracy") %>%
       select(mean, min_n, mtry) %>%
@@ -59,7 +59,7 @@ for(i in 1:length(vars_lag)){
       geom_point(show.legend = FALSE) +
       facet_wrap(~parameter, scales = "free_x") +
       labs(x = NULL, y = "Accuracy")
-    print(plsimg)
+    print(pltimg)
     dev.off()
     rm(list= ls()[!(ls() %in% c('vars_lag','n_trees'))])
     }

@@ -61,10 +61,11 @@ for(i in 1:length(vars_lag)){
 
     # Produce confusion matrix
     pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
-    final_res %>%
+    plitimg <- final_res %>%
       collect_predictions() %>%
       conf_mat(cmpCat, .pred_class) %>%
       autoplot(type = "heatmap")
+    print(pltimg)
     dev.off()
     
     # Produce proportional confusion matrix

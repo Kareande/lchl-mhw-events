@@ -77,7 +77,7 @@ for(i in 1:length(vars_lag)){
 
     # Visualize refined results
     pdf(gsub(" ", "", paste("cmpndFigs/refTrnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
-    regular_res %>%
+    pltimg <- regular_res %>%
       collect_metrics() %>%
       filter(.metric == "accuracy") %>% #or roc_auc
       mutate(min_n = factor(min_n)) %>%
@@ -85,6 +85,7 @@ for(i in 1:length(vars_lag)){
       geom_line(alpha = 0.5, size = 1.5) +
       geom_point() +
       labs(y = "Accuracy")
+    print(pltimg)
     dev.off()
 
     # Deciding on best model
@@ -98,12 +99,12 @@ for(i in 1:length(vars_lag)){
     cmp_prep <- prep(cmp_rec)
     juiced <- juice(cmp_prep)
     pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
-    plsimg <- final_rf %>%
+    pltimg <- final_rf %>%
       set_engine("ranger", importance = "permutation") %>%
       fit(cmpCat ~ .,
         data = juice(cmp_prep)) %>%
       vip(geom = "point")
-    print(plsimg)
+    print(pltimg)
     dev.off()
     rm(list= ls()[!(ls() %in% c('n_min_range','n_max_range','mtry_min_range','mtry_max_range','vars_lag','n_trees','final_rfs'))])
     }
