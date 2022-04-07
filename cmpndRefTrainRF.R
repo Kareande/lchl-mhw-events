@@ -29,13 +29,22 @@ n_min_range[4] <- 1 #180 days lag
 n_max_range[4] <- 8
 mtry_min_range[4] <- 7
 mtry_max_range[4] <- 10
+n_min_range[5] <- 1 #365 days lag
+n_max_range[5] <- 5
+mtry_min_range[5] <- 3
+mtry_max_range[5] <- 7
+n_min_range[6] <- 1 #730 days lag
+n_max_range[6] <- 7
+mtry_min_range[6] <- 11
+mtry_max_range[6] <- 16
 
-vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
+vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo
 n_trees <- 200 #designate number of trees
 final_rfs <- c(rep(NA, 4))
 set.seed(3939)
 doParallel::registerDoParallel(32)
-for(i in 1:length(vars_lag)){
+#for(i in 1:length(vars_lag)){
+for(i in 5:6){
     file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
     workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
     workingset <- workingset[,-c(1:2,31:32)] #remove day, mo, lchlCat, and mhwCat columns
