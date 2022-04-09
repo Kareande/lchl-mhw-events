@@ -20,14 +20,14 @@ best_mtry[3] <- 6 #14 days lag
 best_minn[3] <- 1
 best_mtry[4] <- 7 #180 days lag
 best_minn[4] <- 1
-best_mtry[5] <-  #365 days lag
-best_minn[5] <- 
-best_mtry[6] <-  #730 days lag
-best_minn[6] <- 
+best_mtry[5] <- 4 #365 days lag
+best_minn[5] <- 1
+best_mtry[6] <- 11 #730 days lag
+best_minn[6] <- 1
 
 vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo
 n_trees <- 200
-set.seed(3939)
+set.seed(3939) #SET SEED AS SAME FROM TRAINING
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
     # Reload and split Lchl data: MAKE SURE SEED IS SAME FROM TRAINING
