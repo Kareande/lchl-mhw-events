@@ -43,8 +43,7 @@ n_trees <- 200 #designate number of trees
 final_rfs <- c(rep(NA, 4))
 set.seed(3939)
 doParallel::registerDoParallel(32)
-#for(i in 1:length(vars_lag)){
-for(i in 5:6){
+for(i in 1:length(vars_lag)){
     file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
     workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
     workingset <- workingset[,-c(1:2,31:32)] #remove day, mo, lchlCat, and mhwCat columns
