@@ -7,15 +7,17 @@ library("ggplot2") #aesthetic plotting
 #install.packages()
 
 ##################################### Exploratory Train LChl RF #####################################
-#vars_lag = c(2, 7, 14, 180) #2 days, 1 wk, 2 wk, 6 mo
-vars_lag = c(365, 730) #1yr, 2yr
+vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1 yr, 2 yr
 n_trees <- 200
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
     file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
     workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-    workingset <- workingset[,-c(1:2,31:32)] #remove day, mo, lchlCat, and mhwCat columns
+    workingset <- workingset[ , ! names(workingset) %in% 
+                             c("day","mo","lchlCat","mhwCat", #remove day, mo, lchlCat, and mhwCat columns
+                               "nit","oxy","pho","chl","sil", #remove unlagged lchl vars
+                               "qnet","slp","sat","wndsp","sst","sstRoC")] #remove unlagged mhw vars
     workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
     workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
     workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
@@ -48,7 +50,7 @@ for(i in 1:length(vars_lag)){
 
     # Visualize results of k-fold analysis; accuracy
     pdf(gsub(" ", "", paste("cmpndFigs/preTrainCmpnd",vars_lag[i],"lag",n_trees,"T.pdf")))
-    plsimg <- tune_res %>%
+    pltimg <- tune_res %>%
       collect_metrics() %>%
       filter(.metric == "accuracy") %>%
       select(mean, min_n, mtry) %>%
@@ -59,7 +61,7 @@ for(i in 1:length(vars_lag)){
       geom_point(show.legend = FALSE) +
       facet_wrap(~parameter, scales = "free_x") +
       labs(x = NULL, y = "Accuracy")
-    print(plsimg)
+    print(pltimg)
     dev.off()
     rm(list= ls()[!(ls() %in% c('vars_lag','n_trees'))])
     }
