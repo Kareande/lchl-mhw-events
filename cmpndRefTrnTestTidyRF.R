@@ -1,6 +1,5 @@
 setwd("/home/kareande/lchl-mhw-events")
 library("ranger") #randomForest package
-library("randomForest") #randomForest package
 library("vip") #variable importance plots
 library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
@@ -8,7 +7,7 @@ library("doParallel") #parallel processing
 library("ggplot2") #aesthetic plotting
 library("plot.matrix") #confusion matrix
 library("caret") #proportional matrix
-#install.packages("")
+#install.packages()
 
 ############################## Refined Train LChl RF ##############################
 # Provide refined ranges for parameters
@@ -43,7 +42,8 @@ mtry_max_range[6] <- 14
 
 vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1 yr, 2 yr
 n_trees <- 200 #designate number of trees
-final_rfs <- c(rep(NA, 4))
+final_mtrys <- c(rep(NA, 4))
+final_minns <- c(rep(NA, 4))
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
@@ -59,7 +59,15 @@ for(i in 1:length(vars_lag)){
     workingset[workingset$cmpCat == 0,]$cmpCat="No Event"
     workingset$cmpCat = as.factor(workingset$cmpCat)
     
-   # Split data into training and testing sets
+    # Split data into training and testing sets
+    #cmp_split <- initial_split(workingset, strata = cmpCat)
+    #cmp_train <- training(cmp_split)
+    #cmp_test <- testing(cmp_split)
+    #cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
+    #cmp_prep <- prep(cmp_rec)
+    #juiced <- juice(cmp_prep)
+    
+    # Split data into training and testing sets REDO
     conditions <- workingset$lat>0 #set conditions for sampled rows
     smpld_rows <- which(conditions==TRUE) #only sample rows where conditions true
     n_smpld <- nrow(workingset)*(2/3) #set how many rows to sample
@@ -88,7 +96,7 @@ for(i in 1:length(vars_lag)){
       levels = 10)
 
     # Train models using refined specs
-    cmp_folds <- vfold_cv(cmp_train)
+    cmp_folds <- vfold_cv(cmp_train) #10-fold cross validation
     regular_res <- tune_grid(
       tune_wf,
       resamples = cmp_folds,
@@ -107,6 +115,14 @@ for(i in 1:length(vars_lag)){
     print(pltimg)
     dev.off()
 
+    # Deciding on best model
+    best_rf <- select_best(regular_res, "roc_auc")
+    final_rf <- finalize_model(
+      tune_spec,
+      best_rf)
+    final_mtrys[i] <- best_rf[1]
+    final_minns[i] <- best_rf[2]
+
     # Check variable importance for training data
     pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
     pltimg <- final_rf %>%
@@ -117,22 +133,24 @@ for(i in 1:length(vars_lag)){
     print(pltimg)
     dev.off()
     
-     # Deciding on best model
-    best_rf <- select_best(regular_res, "roc_auc")
-    final_rf <- finalize_model(
-      tune_spec,
-      best_rf)
-    final_mtrys[i] <- best_rf[1]
-    final_minns[i] <- best_rf[2]
- 
     # Use testing data in model
-    rand_rf <- randomForest(cmpCat ~ ., num.trees=n_trees,mtry=as.integer(best_rf[1]),
-                        nodesize=as.integer(best_rf[2]), data=cmp_train)
-    pred_rf <- predict(rand_rf, cmp_test)
-    pred_rf
+    final_wf <- workflow() %>%
+      add_recipe(cmp_rec) %>%
+      add_model(final_rf)
+    final_res <- final_wf %>%
+      last_fit(cmp_split)
 
+    # Produce confusion matrix
+    pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
+    pltimg <- final_res %>%
+      collect_predictions() %>%
+      conf_mat(cmpCat, .pred_class) %>%
+      autoplot(type = "heatmap")
+    print(pltimg)
+    dev.off()
+    
     # Produce proportional confusion matrix
-    cmat <- as.table(confusionMatrix(pred_rf, cmp_test$cmpCat))
+    cmat <- as.table(confusionMatrix(collect_predictions(final_res)$.pred_class,collect_predictions(final_res)$cmpCat))
     cmpt <- sum(cmat[,1])
     chlt <- sum(cmat[,2])
     mhwt <- sum(cmat[,3])
@@ -157,7 +175,7 @@ for(i in 1:length(vars_lag)){
     cnfs <- matrix(c(c11, c21, c31, c41, c12, c22, c32, c42, c13, c23, c33, c43, c14, c24, c34, c44),
                         nrow = 4, ncol = 4,
                         dimnames = list(lab, lab))
-    pdf(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
+    pdf(gsub(" ", "", paste("cmpndFigs/confMatPrptnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
     par(mar=c(5.1, 4.1, 4.1, 4.1)) # adapt margins
     pltimg <- plot(cnfs,
          xlab="",
@@ -172,5 +190,8 @@ for(i in 1:length(vars_lag)){
          fmt.key="%.3f")
     print(pltimg)
     dev.off()
+    #rm(list= ls()[!(ls() %in% c('n_min_range','n_max_range','mtry_min_range','mtry_max_range','vars_lag','n_trees','final_rfs'))])
     }
 doParallel::stopImplicitCluster()
+final_mtrys
+final_minns
