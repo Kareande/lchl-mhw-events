@@ -43,7 +43,8 @@ mtry_max_range[6] <- 14
 
 vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1 yr, 2 yr
 n_trees <- 200 #designate number of trees
-final_rfs <- c(rep(NA, 4))
+final_mtrys <- c(rep(NA, 4))
+final_minns <- c(rep(NA, 4))
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
@@ -107,6 +108,14 @@ for(i in 1:length(vars_lag)){
     print(pltimg)
     dev.off()
 
+    # Deciding on best model
+    best_rf <- select_best(regular_res, "roc_auc")
+    final_rf <- finalize_model(
+      tune_spec,
+      best_rf)
+    final_mtrys[i] <- best_rf[1]
+    final_minns[i] <- best_rf[2]
+ 
     # Check variable importance for training data
     pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
     pltimg <- final_rf %>%
@@ -117,14 +126,6 @@ for(i in 1:length(vars_lag)){
     print(pltimg)
     dev.off()
     
-     # Deciding on best model
-    best_rf <- select_best(regular_res, "roc_auc")
-    final_rf <- finalize_model(
-      tune_spec,
-      best_rf)
-    final_mtrys[i] <- best_rf[1]
-    final_minns[i] <- best_rf[2]
- 
     # Use testing data in model
     rand_rf <- randomForest(cmpCat ~ ., num.trees=n_trees,mtry=as.integer(best_rf[1]),
                         nodesize=as.integer(best_rf[2]), data=cmp_train)
