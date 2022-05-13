@@ -12,25 +12,17 @@ n_trees <- 200
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
-    file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
-    workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-    workingset <- workingset[ , ! names(workingset) %in% 
-                             c("day","mo","lchlCat","mhwCat", #remove day, mo, lchlCat, and mhwCat columns
-                               "nit","oxy","pho","chl","sil", #remove unlagged lchl vars
-                               "qnet","slp","sat","wndsp","sst","sstRoC")] #remove unlagged mhw vars
-    workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
-    workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
-    workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
-    workingset[workingset$cmpCat == 0,]$cmpCat="No event"
-    workingset$cmpCat = as.factor(workingset$cmpCat)
-    
-    # Split data into training and testing sets
-    cmp_split <- initial_split(workingset, strata = cmpCat)
-    cmp_train <- training(cmp_split)
-    cmp_test <- testing(cmp_split)
-    cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
-    
+    # Load training data
+    file_name <- gsub(" ", "", paste("cmpnd_trn_",vars_lag[i],"lag.csv")) #create dyamic df name
+    cmp_train <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
+    cmp_train[cmp_train$cmpCat == 3,]$cmpCat="Compound"
+    cmp_train[cmp_train$cmpCat == 2,]$cmpCat="LChl Event"
+    cmp_train[cmp_train$cmpCat == 1,]$cmpCat="MHW Event"
+    cmp_train[cmp_train$cmpCat == 0,]$cmpCat="No event"
+    cmp_train$cmpCat = as.factor(cmp_train$cmpCat)
+        
     # Create model specification
+    cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
     tune_spec <- rand_forest(
       mtry = tune(),      #number of variables sampled
       trees = n_trees,    #change number of trees
