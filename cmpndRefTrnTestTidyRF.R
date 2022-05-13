@@ -1,5 +1,6 @@
 setwd("/home/kareande/lchl-mhw-events")
 library("ranger") #randomForest package
+library("randomForest") #randomForest package
 library("vip") #variable importance plots
 library("tidymodels") #tidyverse models
 library("foreach") #parallel processing
@@ -190,7 +191,6 @@ for(i in 1:length(vars_lag)){
          fmt.key="%.3f")
     print(pltimg)
     dev.off()
-    #rm(list= ls()[!(ls() %in% c('n_min_range','n_max_range','mtry_min_range','mtry_max_range','vars_lag','n_trees','final_rfs'))])
     }
 doParallel::stopImplicitCluster()
 final_mtrys
