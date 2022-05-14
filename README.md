@@ -16,10 +16,11 @@ Over the last two decades, marine heatwaves (MHWs) have been observed in all maj
     (3)condensing lat and lon data into one "location" column
     (4)adding lags to the LChl and MHW datasets
     (5)categorizing events within the compound dataset as "no event", "mhw event", "lchl event" or "compound event",
-    (6)balancing the lagged compound dataset
+    (6)splitting the compound dataset into training and testing datasets
+    (6)balancing the training dataset
 
 **cmpndExplTrainRF** contains code for:
-    (1)exploratory training of compound RF model,
+    (1)using grid search for paramaterization of compound RF model,
     (2)graphing accuracy of mtry and min n parameters
 
 **cmpndRefTrainTestRF** contains code for:
@@ -31,7 +32,7 @@ Over the last two decades, marine heatwaves (MHWs) have been observed in all maj
 **cmpndRefTrainTestTidyRF** contains code for:
     (1)refined training of compound RF model based on exploratory results,
     (2)graphing optimal combinations of mtry and min n parameters,
-    (3)testing accuracy of compound RF model predictions using tidymodels,
+    (3)testing accuracy of compound RF model predictions using tidymodels parsnip,
     (4)producing confusion matrix to visualize model accuracy
     
 **cmpndUnlaggedRF** contains code for:

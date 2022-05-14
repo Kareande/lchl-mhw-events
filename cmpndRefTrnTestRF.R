@@ -16,30 +16,30 @@ n_min_range <- c()
 n_max_range <- c()
 mtry_min_range <- c()
 mtry_max_range <- c()
-n_min_range[1] <- 5 #2 days lag
-n_max_range[1] <- 12
-mtry_min_range[1] <- 12
-mtry_max_range[1] <- 14
+n_min_range[1] <- 1 #2 days lag
+n_max_range[1] <- 5
+mtry_min_range[1] <- 1
+mtry_max_range[1] <- 4
 n_min_range[2] <- 1 #7 days lag
-n_max_range[2] <- 6
-mtry_min_range[2] <- 9
-mtry_max_range[2] <- 10
+n_max_range[2] <- 14
+mtry_min_range[2] <- 1
+mtry_max_range[2] <- 4
 n_min_range[3] <- 1 #14 days lag
 n_max_range[3] <- 8
-mtry_min_range[3] <- 12
-mtry_max_range[3] <- 14
+mtry_min_range[3] <- 1
+mtry_max_range[3] <- 4
 n_min_range[4] <- 1 #180 days lag
-n_max_range[4] <- 7
-mtry_min_range[4] <- 11
-mtry_max_range[4] <- 12
+n_max_range[4] <- 10
+mtry_min_range[4] <- 10
+mtry_max_range[4] <- 14
 n_min_range[5] <- 1 #365 days lag
-n_max_range[5] <- 10
-mtry_min_range[5] <- 7
-mtry_max_range[5] <- 11
-n_min_range[6] <- 10 #730 days lag
-n_max_range[6] <- 14
+n_max_range[5] <- 8
+mtry_min_range[5] <- 14
+mtry_max_range[5] <- 16
+n_min_range[6] <- 1 #730 days lag
+n_max_range[6] <- 6
 mtry_min_range[6] <- 13
-mtry_max_range[6] <- 14
+mtry_max_range[6] <- 16
 
 vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1 yr, 2 yr
 n_trees <- 200 #designate number of trees
@@ -48,30 +48,19 @@ final_minns <- c(rep(NA, 4))
 set.seed(3939)
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
-    file_name <- gsub(" ", "", paste("cmpnd_blncd_",vars_lag[i],"lag.csv")) #create dyamic df name
-    workingset <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-    workingset <- workingset[ , ! names(workingset) %in% 
-                             c("day","mo","lchlCat","mhwCat", #remove day, mo, lchlCat, and mhwCat columns
-                               "nit","oxy","pho","chl","sil","npp", #remove unlagged lchl vars
-                               "qnet","slp","sat","wndsp","sst","sstRoC")] #remove unlagged mhw vars
-    workingset[workingset$cmpCat == 3,]$cmpCat="Compound"
-    workingset[workingset$cmpCat == 2,]$cmpCat="LChl Event"
-    workingset[workingset$cmpCat == 1,]$cmpCat="MHW Event"
-    workingset[workingset$cmpCat == 0,]$cmpCat="No Event"
-    workingset$cmpCat = as.factor(workingset$cmpCat)
-    
-   # Split data into training and testing sets
-    conditions <- workingset$lat>0 #set conditions for sampled rows
-    smpld_rows <- which(conditions==TRUE) #only sample rows where conditions true
-    n_smpld <- nrow(workingset)*(2/3) #set how many rows to sample
-    sampled.cats <- sample(smpld_rows, n_smpld) #create sample
-    cmp_train <- workingset[sampled.cats,] #dataset with sample
-    cmp_test <- workingset[-sampled.cats, ] #dataset excluding sample
-    cmp_rec <- recipe(cmpCat ~ ., data = cmp_train)
+    # Get training dataset
+    trn_name <- gsub(" ", "", paste("cmpnd_trn_",vars_lag[i],"lag.csv")) #create dyamic df name
+    cmp_trn <- read.csv(gsub(" ", "", paste("cmpndData/",trn_name)),sep=",") #get training df
+    cmp_trn[cmp_trn$cmpCat == 3,]$cmpCat="Compound"
+    cmp_trn[cmp_trn$cmpCat == 2,]$cmpCat="LChl Event"
+    cmp_trn[cmp_trn$cmpCat == 1,]$cmpCat="MHW Event"
+    cmp_trn[cmp_trn$cmpCat == 0,]$cmpCat="No Event"
+    cmp_trn$cmpCat = as.factor(cmp_trn$cmpCat)
+
+    # Create model specification
+    cmp_rec <- recipe(cmpCat ~ ., data = cmp_trn)
     cmp_prep <- prep(cmp_rec)
     juiced <- juice(cmp_prep)
-    
-    # Create model specification
     tune_spec <- rand_forest(
       mtry = tune(),      #number of variables sampled
       trees = n_trees,    #change number of trees
@@ -81,7 +70,7 @@ for(i in 1:length(vars_lag)){
     tune_wf <- workflow() %>%
       add_recipe(cmp_rec) %>%
       add_model(tune_spec)
-    
+
     # Refine model specs for re-training based on previous results
     rf_grid <- grid_regular(
       mtry(range = c(mtry_min_range[i], mtry_max_range[i])),
@@ -89,7 +78,7 @@ for(i in 1:length(vars_lag)){
       levels = 10)
 
     # Train models using refined specs
-    cmp_folds <- vfold_cv(cmp_train)
+    cmp_folds <- vfold_cv(cmp_trn)
     regular_res <- tune_grid(
       tune_wf,
       resamples = cmp_folds,
@@ -115,7 +104,7 @@ for(i in 1:length(vars_lag)){
       best_rf)
     final_mtrys[i] <- best_rf[1]
     final_minns[i] <- best_rf[2]
- 
+
     # Check variable importance for training data
     pdf(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",vars_lag[i],"Lag",n_trees,"T.pdf")))
     pltimg <- final_rf %>%
@@ -125,15 +114,24 @@ for(i in 1:length(vars_lag)){
       vip(geom = "point")
     print(pltimg)
     dev.off()
+
+    # Get testing dataset
+    tst_name <- gsub(" ", "", paste("cmpnd_tst_",vars_lag[i],"lag.csv"))
+    cmp_tst <- read.csv(gsub(" ", "", paste("cmpndData/",tst_name)),sep=",") #get testing df
+    cmp_tst[cmp_tst$cmpCat == 3,]$cmpCat="Compound"
+    cmp_tst[cmp_tst$cmpCat == 2,]$cmpCat="LChl Event"
+    cmp_tst[cmp_tst$cmpCat == 1,]$cmpCat="MHW Event"
+    cmp_tst[cmp_tst$cmpCat == 0,]$cmpCat="No Event"
+    cmp_tst$cmpCat = as.factor(cmp_tst$cmpCat)
     
     # Use testing data in model
     rand_rf <- randomForest(cmpCat ~ ., num.trees=n_trees,mtry=as.integer(best_rf[1]),
-                        nodesize=as.integer(best_rf[2]), data=cmp_train)
-    pred_rf <- predict(rand_rf, cmp_test)
+                        nodesize=as.integer(best_rf[2]), data=cmp_trn)
+    pred_rf <- predict(rand_rf, cmp_tst)
     pred_rf
 
     # Produce proportional confusion matrix
-    cmat <- as.table(confusionMatrix(pred_rf, cmp_test$cmpCat))
+    cmat <- as.table(confusionMatrix(pred_rf, cmp_tst$cmpCat))
     cmpt <- sum(cmat[,1])
     chlt <- sum(cmat[,2])
     mhwt <- sum(cmat[,3])
