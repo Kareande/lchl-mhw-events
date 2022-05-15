@@ -11,44 +11,31 @@ Over the last two decades, marine heatwaves (MHWs) have been observed in all maj
     **For reference only, not runnable!**
 
 **cmpndDataProcessing** contains code for:
-    (1)categorizing the LChl and MHW data as either "event" or "no event" in their respective datasets,
-    (2)condensing day, month, and year data into "days since" column
-    (3)condensing lat and lon data into one "location" column
-    (4)adding lags to the LChl and MHW datasets
-    (5)categorizing events within the compound dataset as "no event", "mhw event", "lchl event" or "compound event",
-    (6)splitting the compound dataset into training and testing datasets
-    (6)balancing the training dataset
+    (1)categorizing LChl and MHW observations as "event" or "no event" in their respective datasets,
+    (2)splitting the LChl and MHW datasets into training and testing datasets,
+    (3)adding lags to the LChl and MHW testing datasets,
+    (4)merging the LChl and MHW data to create compound training and testing datasets,
+    (5)categorizing compound observations as "no event", "mhw event", "lchl event" or "compound event",
+    (6)balancing the categories in the LChl and MHW training datasets,
 
 **cmpndExplTrainRF** contains code for:
-    (1)using grid search for paramaterization of compound RF model,
+    (1)using grid search for tuning parameters of RF model,
     (2)graphing accuracy of mtry and min n parameters
 
 **cmpndRefTrainTestRF** contains code for:
     (1)refined training of compound RF model based on exploratory results,
     (2)graphing of optimal combinations of mtry and min n parameters,
-    (3)testing accuracy of compound RF model predictions using randomForests package,
-    (4)producing confusion matrix to visualize model accuracy
-
-**cmpndRefTrainTestTidyRF** contains code for:
-    (1)refined training of compound RF model based on exploratory results,
-    (2)graphing optimal combinations of mtry and min n parameters,
-    (3)testing accuracy of compound RF model predictions using tidymodels parsnip,
+    (3)graphing of variable importance,
+    (3)testing accuracy of model predictions on several lags,
     (4)producing confusion matrix to visualize model accuracy
     
-**cmpndUnlaggedRF** contains code for:
-    (1)categorizing the LChl and MHW data as either event or not event in their respective datasets,
-    (2)categorizing events within the compound dataset as no event, mhw event, lchl event or compound event,
-    (3)balancing the compound dataset,
-    (4)training compound event RF model,
-    (5)testing compound event RF model
-    **The following sections must be ran independently: Exploratory Train, Refined Train, and Test.**
-
 **lchlRF** contains code for:
-    (1)categorizing Lchl data as negligable, moderate, severe, and extreme,
-    (2)balancing LChl dataset,
-    (3)training LChl event RF model,
-    (4)testing LChl event RF model
-    **The following sections must be ran independently: Exploratory Train, Refined Train, and Test.**
+    (1)categorizing Lchl data as negligable, moderate, strong, severe, or extreme,
+    (2)splitting of LChl dataset into training and testing sets,
+    (3)balancing the LChl training dataset,
+    (3)training LChl RF model,
+    (4)testing LChl RF model
+    **The following sections must be ran independently: (1) Exploratory Train, (2) Refined Train and Testing.**
 
-Unprocessed, unbalanced data can be found here: https://www.dropbox.com/sh/3locafvuzq9tylg/AAB5bwDgFJCzlJ-NLKiNwmbTa?dl=0What
+Raw or unprocessed data can be found here: https://www.dropbox.com/sh/3locafvuzq9tylg/AAB5bwDgFJCzlJ-NLKiNwmbTa?dl=0What
 All other datasets (balanced, categorized, compounded) are created within the code.
