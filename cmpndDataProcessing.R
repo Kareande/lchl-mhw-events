@@ -7,7 +7,7 @@ library("lubridate") #calculating day of year
 
 ##################################### Define LChl categories #####################################
 # Get uncategorized Lchl df
-file_name <- paste("chl_raw.csv") #name of df
+file_name <- paste("lchl_raw.csv") #name of df
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE) #read df path
 lchl_df <- na.omit(lchl_df) #remove NA values
 head(lchl_df)
@@ -36,13 +36,13 @@ doParallel::stopImplicitCluster()
 head(lchl_df)
 
 # Save df
-file_name <- paste("chl_unprocessed.csv")
+file_name <- paste("lchl_unprocessed.csv")
 file_path <- gsub(" ", "", paste("cmpndData/",file_name))
 write.table(lchl_df,file_path,sep=",")
 
 ################################ Condense date and location data ################################
 # Load lChl df
-file_name <- paste("chl_unprocessed.csv")
+file_name <- paste("lchl_unprocessed.csv")
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)), sep=",", header=TRUE)
 #head(lchl_df)
 
@@ -125,15 +125,8 @@ file_name <- paste("mhw_lagsprep.csv")
 write.table(mhw_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
 ############################# Split into Testing and Training DFs #############################
-setwd("/home/kareande/lchl-mhw-events")
-library("foreach") #parallel processing
-library("doParallel") #parallel processing
-library("dplyr") #lags
-library("lubridate") #calculating day of year
-#install.packages()
-
 # Get LChl DF
-file_name <- gsub(" ", "", paste("lchl_lagsprep.csv")) #create dyamic df name
+file_name <- gsub(" ", "", paste("lchl_lagsprep.csv"))
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get lchl df
 head(lchl_df)
 
@@ -167,20 +160,20 @@ trn_name <- gsub(" ", "", paste("mhw_trn_unbal.csv"))
 write.table(mhw_train,gsub(" ", "", paste("cmpndData/",trn_name)),sep=",") #save training set
 
 
-##################################### Add Leads to Testing DFs #####################################
-# Get LChl testing df
-file_name <- paste("chl_tst_unlag.csv")
+##################################### Add lags to Testing DFs #####################################
+# Get unlagged LChl testing df
+file_name <- paste("lchl_tst_unlag.csv")
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(lchl_df)
 
-# Add lags to LChl testing DF
+# Add various lags to LChl testing DF
 vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1yr, 2yr
 vars_lchl = c(colnames(lchl_df))[-c(1:6,13)] #var names
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)) { #for each lag value...
     dyn_col <- c()
     for(v in 1:length(vars_lchl)) {
-        dyn_col[v] <- gsub(" ", "", paste(vars_lchl[v],vars_lag[i])) #create dynamic lagged col name
+        dyn_col[v] <- gsub(" ", "", paste(vars_lchl[v],vars_lag[i])) #create iterative lagged col name
         }
     lchl_lag_df <- lchl_df %>% #create lagged df
         group_by(location) %>% #limit shifting of rows to be by date
@@ -201,18 +194,17 @@ for(i in 1:length(vars_lag)) { #for each lag value...
 doParallel::stopImplicitCluster()
 head(lchl_lag_df)
 
-# Get MHW df
+# Get unlagged MHW testing DF
 file_name <- paste("mhw_tst_unlag.csv")
 mhw_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
-# Create MHW DF's with various values of lags
-vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1yr, 2yr
+# Add various lags to MHW testing DF
 vars_mhw = c(colnames(mhw_df))[-c(1:6,13)] #var names
 doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)) { #for each lag value...
     dyn_col <- c()
     for(v in 1:length(vars_mhw)) {
-        dyn_col[v] <- gsub(" ", "", paste(vars_mhw[v],vars_lag[i])) #create dynamic lagged col name
+        dyn_col[v] <- gsub(" ", "", paste(vars_mhw[v],vars_lag[i])) #create iterative lagged col name
         }
     mhw_lag_df <- mhw_df %>% #create lagged df
         group_by(location) %>% #limit shifting of rows to be by date
@@ -235,7 +227,6 @@ head(mhw_lag_df)
 
 
 ############################### Add Compound Cats to Testing DF's ###############################
-vars_lag = c(2, 7, 14, 180, 365, 730) #2 days, 1 wk, 2 wk, 6 mo, 1yr, 2yr
 for(i in 1:length(vars_lag)){
     # Get lagged LChl testing DFs
     file_name <- gsub(" ", "", paste("lchl_tst_",vars_lag[i],"lag.csv")) #create dyamic df name
@@ -248,6 +239,7 @@ for(i in 1:length(vars_lag)){
     # Combine LChl and MHW testing DFs
     cmp_df <- merge(lchl_df, mhw_df, c("yr", "doy", "lon", "lat")) #merge based on these columns
     cmp_df <- na.omit(cmp_df) #remove NA values
+    cmp_df <- cmp_df %>% relocate(lchlCat, .before = mhwCat)
     file_name <- gsub(" ", "", paste("cmpnd_tst_",vars_lag[i],"lag.csv")) #create dyamic df name
     write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
     }
@@ -258,7 +250,6 @@ doParallel::registerDoParallel(32)
 for(i in 1:length(vars_lag)){
     file_name <- gsub(" ", "", paste("cmpnd_tst_",vars_lag[i],"lag.csv")) #create dyamic df name
     cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #get cmpnd df
-    cmp_df <- cmp_df %>% relocate(lchlCat, .before = mhwCat)
     cmp_df <- na.omit(cmp_df) #make sure NA values removed
     x <- nrow(cmp_df) #get number of datapoints
     for(n in 1:x) { #loop to fill out categories
@@ -284,7 +275,7 @@ head(cmp_df)
     
 ############################### Add Compound Cats to Training DF ###############################
 # Get LChl training DF
-file_name <- gsub(" ", "", paste("chl_trn_unbal.csv"))
+file_name <- gsub(" ", "", paste("lchl_trn_unbal.csv"))
 lchl_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 lchl_df <- lchl_df[ , ! names(lchl_df) %in% c("ds","location")] #remove days since and location
 
@@ -296,10 +287,10 @@ mhw_df <- mhw_df[ , ! names(mhw_df) %in% c("ds","location")] #remove days since 
 # Combine LChl and MHW training DF's 
 cmp_df <- merge(lchl_df, mhw_df, c("yr", "doy", "lon", "lat")) #merge based on these columns
 cmp_df <- na.omit(cmp_df) #remove NA values
+cmp_df <- cmp_df %>% relocate(lchlCat, .before = mhwCat)
 head(cmp_df)
 
 # Add cats to compound training DF
-cmp_df <- cmp_df %>% relocate(lchlCat, .before = mhwCat)
 x <- nrow(cmp_df) #get number of observations
 for(n in 1:x) { #loop to fill out categories
     if (is.na(cmp_df$lchlCat[n]) || is.na(cmp_df$mhwCat[n])) { #if value i of chl column OR mhw column is NA,
@@ -320,7 +311,7 @@ write.table(cmp_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 head(cmp_df)
 
 ##################################### Balance Training DF #####################################
-######## continue here tmux 1 ######
+# Get unbalanced compound training DF
 file_name <- gsub(" ", "", paste("cmpnd_trn_unbal.csv"))
 cmp_df <- read.csv(gsub(" ", "", paste("cmpndData/",file_name)),sep=",")
 
@@ -365,8 +356,8 @@ n_rows_remov <- n_1rows_remov
 sampled.cats <- sample(rows_remov, n_rows_remov)
 cmp_bal_df <- cmp_bal_df[-sampled.cats, ]
 
-# Save balanced compound df
-file_name <- gsub(" ", "", paste("cmpnd_trn.csv")) #create dyamic df name
+# Save balanced compound training df
+file_name <- gsub(" ", "", paste("cmpnd_trn.csv"))
 write.table(cmp_bal_df,gsub(" ", "", paste("cmpndData/",file_name)),sep=",") #save balanced lchl dataset
     
 # Find the balanced percentages of each category; no events (0), mhw event (1), lchl event (2), compound event (3)

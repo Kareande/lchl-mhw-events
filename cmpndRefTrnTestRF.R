@@ -13,10 +13,10 @@ library("caret") #proportional matrix
 ############################## Refined Train RF ##############################
 # Provide refined ranges for parameters
 n_trees <- 200
-n_min_range <- 
-n_max_range <- 
-mtry_min_range <- 
-mtry_max_range <- 
+n_min_range <- 1
+n_max_range <- 11
+mtry_min_range <- 1
+mtry_max_range <- 5
 
 # Get training dataset
 trn_name <- gsub(" ", "", paste("cmpnd_trn.csv"))
@@ -69,7 +69,9 @@ pltimg <- regular_res %>%
   theme(plot.title = element_text(face="bold", size=18, hjust = 0.5),
   axis.title.x = element_text(face="bold", size=16),
   axis.title.y = element_text(face="bold", size=14),
-  legend.title=element_text(size=14))
+  legend.title=element_text(face="bold", size=14),
+  axis.text = element_text(size = 15)) +
+  scale_colour_discrete(name="min n")
 print(pltimg)
 dev.off()
 
@@ -87,7 +89,7 @@ rand_rf <- randomForest(cmpCat ~ ., num.trees=n_trees,mtry=final_mtry,
 
 # Check variable importance for training data
 png(gsub(" ", "", paste("cmpndFigs/VarImpTrnCmpnd",n_trees,"T.png")))
-title <- gsub(" ", " ", paste("Variable Importance"))
+title <- gsub(" ", " ", paste("Predictor Variable Importance"))
 pltimg <- final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
   fit(cmpCat ~ .,
@@ -96,7 +98,8 @@ pltimg <- final_rf %>%
   ggtitle(title) +
   theme(plot.title = element_text(face="bold", size=18, hjust = 0.5),
   axis.title.x = element_text(face="bold", size=16),
-  axis.title.y = element_text(face="bold", size=14))
+  axis.title.y = element_text(face="bold", size=14),
+  axis.text = element_text(size = 15))
 print(pltimg)
 dev.off()
 
@@ -108,6 +111,12 @@ for(i in 1:length(vars_lag)){
     # Get testing dataset
     tst_name <- gsub(" ", "", paste("cmpnd_tst_",vars_lag[i],"lag.csv"))
     cmp_tst <- read.csv(gsub(" ", "", paste("cmpndData/",tst_name)),sep=",") #get testing df
+    cmp_tst <- cmp_tst[ , ! names(cmp_tst) %in% 
+                       c("nit","oxy","pho","chl","sil","npp", #remove unlagged lchl vars
+                         "qnet","slp","sat","wndsp","sst","sstRoC")] #remove unlagged mhw vars
+    colnames(cmp_tst) <- c("yr","doy","lon","lat", #rename vars to remove lag days
+                           "nit","oxy","pho","chl","sil","npp",
+                           "qnet","slp","sat","wndsp","sst","sstRoC","cmpCat")
     cmp_tst[cmp_tst$cmpCat == 3,]$cmpCat="Compound"
     cmp_tst[cmp_tst$cmpCat == 2,]$cmpCat="LChl Event"
     cmp_tst[cmp_tst$cmpCat == 1,]$cmpCat="MHW Event"
@@ -145,7 +154,7 @@ for(i in 1:length(vars_lag)){
                         nrow = 4, ncol = 4,
                         dimnames = list(lab, lab))
     png(gsub(" ", "", paste("cmpndFigs/confMatCmpnd",vars_lag[i],"Lag",n_trees,"T.png")))
-    title <- gsub(" ", " ", paste("RF Prediction Accuracy for",vars_lag[i],"Days of Lag"))
+    title <- gsub(" ", " ", paste("RF Prediction Accuracy for Lead of",vars_lag[i],"Days"))
     par(mar=c(5.1, 4.1, 4.1, 4.1)) # adapt margins
     pltimg <- plot(cnfs,
          xlab="",
